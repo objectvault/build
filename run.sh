@@ -339,9 +339,6 @@ start_fe() {
     DOCKERCMD="docker run --rm"
 #    DOCKERCMD="docker run"
 
-    # Set Server Configuration File
-    DOCKERCMD="${DOCKERCMD} -v ${CONFDIR}/server.${MODE}.json:/app/server.json:ro"
-
     # Expose Port so that we can attach from local system
     DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:5000:80"
 
