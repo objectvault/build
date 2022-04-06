@@ -18,6 +18,13 @@ export BASEDIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 ## WORKING MODE [DEFAULT: debug]
 MODE=${MODE:-"debug"}
 
+## IMAGE Sources
+APIIMAGESRC="https://github.com/objectvault/api-services.git"
+FEIMAGESRC="https://github.com/objectvault/frontend.git"
+
+## BUILD DIRECTORY
+BUILDDIR="${BASEDIR}/build"
+
 ## IMAGES
 MARIADB="bitnami/mariadb:latest" 
 APISERVER="local/ov-api-server"
@@ -276,10 +283,48 @@ logs_db() {
 }
 
 ## CONTAINERS: BACK-END Servers ##
+build_docker_image() {
+  # PARAM $1 - Local Image Source Path
+  # PARAM $2 - Docker Image Tag
+
+  # PATH for Image SRC
+  IMAGEPATH="${BUILDDIR}/$1"
+
+  # Build Docker Image
+  docker build --tag "$2" "${IMAGEPATH}/."
+}
+
+stage_image_src() {
+  # PARAM $1 - Remote GIT repository
+  # PARAM $2 - Local GIT Repository Path
+
+  # PATH for Image SRC
+  IMAGEPATH="${BUILDDIR}/$2"
+
+  # Does SRC Path Exist?
+  if [ -d "${IMAGEPATH}" ]; then # YES: Update Image Src
+    cd "${IMAGEPATH}"
+    git config pull.rebase false
+    git pull
+    cd "${BASEDIR}"
+  else # NO: Clone Image SRC
+    mkdir -p "${IMAGEPATH}"
+    git clone "$1" "${IMAGEPATH}"
+  fi
+}
+
+## Build Docker Image for API Server
+build_api() {
+  IMAGESRC="${APIIMAGESRC}"
+  IMAGETAG="${APISERVER}"
+
+  stage_image_src "${IMAGESRC}" api
+  build_docker_image api "${IMAGETAG}"
+}
 
 ## Start Backend API Server
 start_api() {
-  # Get Parameters
+  # PARAM $1 - Container Name
   IMAGE="${APISERVER}"
   CONTAINER=$1
 
@@ -322,6 +367,15 @@ start_api() {
 }
 
 ## CONTAINERS: FRONT-END Servers ##
+
+## Build Docker Image for Frontend Web Server
+build_fe() {
+  IMAGESRC="${FEIMAGESRC}"
+  IMAGETAG="${FESERVER}"
+
+  stage_image_src "${IMAGESRC}" fe
+  build_docker_image fe "${IMAGETAG}"
+}
 
 ## Start Frontend Web Server
 start_fe() {
@@ -395,6 +449,38 @@ stop_all() {
 
   # Remove Existing Networks
   networks_rm
+}
+
+build_all() {
+  ## START All Servers ##
+  echo "Building All Images"
+
+  # Build API Server Docker Images
+  build_api
+
+  # Build Frontned Server Docker Images
+  build_fe
+}
+
+## SHELL COMMAND: Start - On or More Application Containers
+build() {
+  ## Start
+  echo "Building '$1'"
+
+  case "$1" in
+    all)
+      build_all
+      ;;
+    api)
+      build_api
+      ;;
+    fe)
+      build_fe
+      ;;
+    *)
+      usage
+      ;;
+  esac
 }
 
 ## SHELL COMMAND: Start - On or More Application Containers
@@ -505,11 +591,12 @@ mode() {
 
 ## Dsiplay Usage
 usage() {
-  echo "Usage: run {start|stop}  [all|{container}] DEFAULT: all" >&2
-  echo "       run log           {container}" >&2
-  echo "       run shell         {container}" >&2
-  echo "       run networks      rm|create" >&2
-  echo "       mode" >&2
+  echo "Usage: $0 {start|stop}  [all|{container}] DEFAULT: all" >&2
+  echo "       $0 build         [all|api|fe] DEFAULT: all" >&2
+  echo "       $0 log           {container}" >&2
+  echo "       $0 shell         {container}" >&2
+  echo "       $0 networks      rm|create" >&2
+  echo "       $0 mode" >&2
   echo >&2
   echo "Containers:"
   echo "  db | api | fe" >&2
@@ -562,6 +649,16 @@ case "$ACTION" in
     fi 
 
     log "$2"
+    ;;
+  build)
+    # Container : DEFAULT [all]
+    CONTAINER=${2:-"all"}
+
+    # Stop Container(s)
+    build "$CONTAINER"
+
+    ## List Docker Images
+    docker image ls
     ;;
   start)
     echo "Volumes Directory       [${VOLUMESDIR}]"
