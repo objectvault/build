@@ -26,14 +26,18 @@ To run the application, in more or less, debug mode you have to
 ```
 
 3. (On 1st Use) Create Database on DB Server(s)
+  * Use schema.sql
+    * This creates the database and all required tables
 
 4. (On 1st Use) Load Initial Data into Shard 0. 
+  * Use startup-data.sql
   * This adds:
     1. System Administrator (admin, password adminADMIN)
     2. System Organization (system)
     3. Basic Template for Objects
 
-Currently, initializing the database servers, has to be done by hand (i.e. you have to connect to the DB servers, one by one, and execute the SQL scripts).
+Currently, initializing the database servers, ***has to be done by hand*** (i.e. you have to connect to the DB servers, one by one, and execute the SQL scripts).
+
 The SQL files are in the directory init/mariadb
 
 ## Notes for 1st Application Use
@@ -49,7 +53,7 @@ By default, the system is initialized with:
 
 1. System Organization: system
     * System Administration Organization *ONLY** (***can not*** have Object Stores associated)
-    * All users that can create Organization's have to be associated
+    * All users that can create Organization's have to be associated with ***system*** organization
 2. System Admin: admin, password: adminADMIN
     * Has ***ALL*** Roles and Permissions over the ***system*** organization
     * As a basic rule, a user ***can not*** modify **is own roles** and permissions
@@ -79,7 +83,6 @@ To get the inviation ID, you have to query the database ***directly*** to retrie
 SELECT a.invitee_email, a.id_object, b.{orgname | storename}, a.uid 
   FROM vault.invites as a
   INNER JOIN vault.{registry_orgs | registry_org_stores} as b ON a.id_object = b.{id_org | id_store}
-
 ```
 
 Use:
