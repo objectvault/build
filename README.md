@@ -32,7 +32,7 @@ To run the application, in more or less, debug mode you have to
 4. (On 1st Use) Load Initial Data into Shard 0. 
   * Use startup-data.sql
   * This adds:
-    1. System Administrator (admin, password adminADMIN)
+    1. System Administrator (admin, password: adminADMIN)
     2. System Organization (system)
     3. Basic Template for Objects
 
