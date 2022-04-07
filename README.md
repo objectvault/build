@@ -62,13 +62,13 @@ By default, the system is initialized with:
 
 In order for a user to have any sort of access to the system, a user, with permissions to ***invite*** has to create a new invitation for the user.
 
-Basic worklflow would be something like:
+Basic workflow would be something like:
 
 1. User with permissions to invite (into the organization to which the user is being granted access), creates a new invitation
     * In a fully functioning application, this would generate an email message with the invitation link.
-    * ***NOW*** it creates an invitation database object that has to be ***consulted*** and ***manually*** accepted (decription below)
+    * ***NOW*** it creates an invitation database object that has to be ***consulted*** and ***manually*** accepted (description below)
 2. The user clicks on the link, and is taken to invitation accept / decline
-    * ***Decline*** just simply marks the inviation as declined and consumed
+    * ***Decline*** just simply marks the invitation as declined and consumed
 3. On acceptance, if the user is:
     1. ***NEW*** He is requested to create a new user in the system to accept the invitation
     2. ***Existing*** He is requested to login, to accept the invitation
@@ -77,7 +77,7 @@ Basic worklflow would be something like:
 
 * LINK - http://localhost:5000/#/invitation/{Unique Invitation ID}
 
-To get the inviation ID, you have to query the database ***directly*** to retrieve the UID . Something like:
+To get the invitation ID, you have to query the database ***directly*** to retrieve the UID . Something like:
 
 ```sql
 SELECT a.invitee_email, a.id_object, b.{orgname | storename}, a.uid 
@@ -87,5 +87,5 @@ SELECT a.invitee_email, a.id_object, b.{orgname | storename}, a.uid
 
 Use:
 
-* registry_orgs / orgname - for inviations to organization, or
-* registry_org_stores / storename - for inviations to store
+* registry_orgs / orgname - for invitations to organization, or
+* registry_org_stores / storename - for invitations to store
