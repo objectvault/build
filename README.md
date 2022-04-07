@@ -38,28 +38,30 @@ The SQL files are in the directory init/mariadb
 
 ## Notes for 1st Application Use
 
-The application has several main ***objects***:
+### The application has several main ***objects***
 
-1. User (Represents an actor with access to the system)
-2. Organization (Represents a Security Zone and Container for Object Stores)
-3. Stores (represents a Security Zone and Secure Container for Objects)
+1. User (represents an actor with access to the system)
+2. Organization (represents a Security Zone and Container for Object Stores)
+3. Store (represents a Security Zone and Secure Container for Objects)
+4. Store Object (represents Encrypted Object)
 
 By default, the system is initialized with:
 
-1. Organization: system
-    * System Administration Organization ***ONLY*** (can not have Object Stores associated)
+1. System Organization: system
+    * System Administration Organization *ONLY** (***can not*** have Object Stores associated)
     * All users that can create Organization's have to be associated
-2. USER: admin, password: adminADMIN
-    * Has *ALL* Roles and Permissions over the ***system*** organization
-    * As a basic rule, a user ***can not*** modify is own roles and permissions
+2. System Admin: admin, password: adminADMIN
+    * Has ***ALL*** Roles and Permissions over the ***system*** organization
+    * As a basic rule, a user ***can not*** modify **is own roles** and permissions
 
-***The application works by invitation only.***
+### The application works by invitation ***only***
+
 In order for a user to have any sort of access to the system, a user, with permissions to ***invite*** has to create a new invitation for the user.
 
 Basic worklflow would be something like:
 
 1. User with permissions to invite (into the organization to which the user is being granted access), creates a new invitation
-    * In a fully functioning application, this would generate an email message with the invitation link. 
+    * In a fully functioning application, this would generate an email message with the invitation link.
     * ***NOW*** it creates an invitation database object that has to be ***consulted*** and ***manually*** accepted (decription below)
 2. The user clicks on the link, and is taken to invitation accept / decline
     * ***Decline*** just simply marks the inviation as declined and consumed
