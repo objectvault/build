@@ -25,5 +25,9 @@ INSERT INTO `vault`.`registry_user_objects` (`id_user`, `type`, `id_object`, `al
        VALUES                               (CONV('1000000000000', 16, 10), 2, CONV('2000000000000', 16, 10), 'system', 1);
 
 -- Basic Templates
+-- TEMPLATE: NOTE
 INSERT INTO `vault`.`templates` (`name`, `version`, `title`, `description`, `model`)
-       VALUES ('note', '1', 'Note', 'Note Template', '{"template":{"name":"note","version":1},"display":{"title":"Note","groups":["detail"],"layout":"column"},"groups":{"detail":{"layout":"row","fields":["note"]}},"fields":{"note":{"type":"text","label":"Note","validations":{"required":true,"max-length":2048}}}}');
+       VALUES ('note', '1', 'Note', 'Note Template', '{"template":{"name":"note","version":1},"display":{"title":"Note","groups":["detail"],"layout":"column"},"groups":{"detail":{"layout":"row","fields":["note"]}},"fields":{"note":{"type":"text","label":"Note","settings":{"required":true,"max-length":2048}}}}');
+-- TEMPLATE: SITE-CREDENTIALS
+INSERT INTO `vault`.`templates` (`name`, `version`, `title`, `description`, `model`)
+       VALUES ('site-credentials', '1', 'Site Credentials', 'Access Credentials for a Site or Portal', '{"template":{"name":"site-credentials","version":1},"display":{"title":"Site Access Credentials","groups":["site","access","notes"],"layout":"column"},"groups":{"site":{"layout":"row","fields":["site"]},"access":{"layout":"row","fields":["user","password"]},"notes":{"layout":"row","fields":["notes"]}},"fields":{"site":{"type":"url","label":"URL","settings":{"required":true,"max-length":256}},"user":{"type":"user","label":"User name","settings":{"required":true,"max-length":80}},"password":{"type":"password","label":"Password","settings":{"required":true,"max-length":80}},"notes":{"type":"text","label":"Notes","settings":{"required":false,"max-length":2048}}}}');
