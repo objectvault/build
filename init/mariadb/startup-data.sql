@@ -31,3 +31,9 @@ INSERT INTO `vault`.`templates` (`name`, `version`, `title`, `description`, `mod
 -- TEMPLATE: SITE-CREDENTIALS
 INSERT INTO `vault`.`templates` (`name`, `version`, `title`, `description`, `model`)
        VALUES ('site-credentials', '1', 'Site Credentials', 'Access Credentials for a Site or Portal', '{"template":{"name":"site-credentials","version":1},"display":{"title":"Site Access Credentials","groups":["site","access","notes"],"layout":"column"},"groups":{"site":{"layout":"row","fields":["site"]},"access":{"layout":"row","fields":["user","password"]},"notes":{"layout":"row","fields":["notes"]}},"fields":{"site":{"type":"url","label":"URL","settings":{"required":true,"max-length":256}},"user":{"type":"user","label":"User name","settings":{"required":true,"max-length":80}},"password":{"type":"password","label":"Password","settings":{"required":true,"max-length":80}},"notes":{"type":"text","label":"Notes","settings":{"required":false,"max-length":2048}}}}');
+
+-- (ALL TEMPLATES HAVE TO BE REGISTERED WITH SYSTEM ORGANIZATION
+INSERT INTO `vault`.`registry_object_templates` (`id_object`, `template`, `title`)
+       VALUES (CONV('2000000000000', 16, 10), 'note', 'Note');
+INSERT INTO `vault`.`registry_object_templates` (`id_object`, `template`, `title`)
+       VALUES (CONV('2000000000000', 16, 10), 'site-credentials', 'Site Credentials');
