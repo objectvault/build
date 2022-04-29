@@ -18,7 +18,7 @@ INSERT INTO `vault`.`registry_orgs` (`id_org`, `orgname`, `name`, `state`)
 
 -- ORGANIZATION User Registry : Associate 0 User with 0 Org - All Roles - State 4096 (SYSTEM ADMIN)
 INSERT INTO `vault`.`registry_object_users` (`id_object`, `id_user`, `username`, `state`, `roles`)
-       VALUES                               (CONV('2000000000000', 16, 10), CONV('1000000000000', 16, 10), 'admin', 4096, '16908287,16973823,17039359,33685503,33751039,33816575,33882111,33947647');
+       VALUES                               (CONV('2000000000000', 16, 10), CONV('1000000000000', 16, 10), 'admin', 4096, '16908287,16973823,17039359,33685503,33751039,33816575,33882111,33947647,34144255');
 
 -- USER Objects Registry : Associate 0 User wih 0 Org
 INSERT INTO `vault`.`registry_user_objects` (`id_user`, `type`, `id_object`, `alias`, `favorite`)
