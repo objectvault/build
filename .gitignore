@@ -1,3 +1,5 @@
-# Docker
-######### 
-/build 
+# Directories
+##############
+/builds
+/containers
+/notes
