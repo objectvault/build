@@ -21,14 +21,23 @@ MODE=${MODE:-"debug"}
 ## IMAGE Sources
 APIIMAGESRC="https://github.com/objectvault/api-services.git"
 FEIMAGESRC="https://github.com/objectvault/frontend.git"
+QMAILERSRC="https://github.com/objectvault/queue-smtp-mailer.git"
 
-## BUILD DIRECTORY
-BUILDDIR="${BASEDIR}/build"
+## BUILD Directory
+BUILDDIR="${BASEDIR}/builds"
+
+## CONTAINERS Data Directory
+CONTAINERDIR="${BASEDIR}/containers"
+
+## CONTAINERS Source Configuration Directory
+SOURCEDIR="${BASEDIR}/sources"
 
 ## IMAGES
+RABBITMQ="rabbitmq:management-alpine"
 MARIADB="bitnami/mariadb:latest" 
 APISERVER="local/ov-api-server"
 FESERVER="local/ov-fe-server"
+QMAILER="local/ov-q-mailer"
 
 ## NETWORKS
 NETWORKS="net-ov-storage"
@@ -44,7 +53,8 @@ NETWORKS="net-ov-storage"
 VOLUMESDIR="${BASEDIR}/volumes"
 
 ## CONF Directory
-CONFDIR="${BASEDIR}/conf"
+CONFDIR="${BASEDIR}/conf/containers"
+CONFSRC="${BASEDIR}/conf/sources"
 
 ## DOCKER CONTAINER Environment Properties
 MARIADB_ROOT_PASSWORD='rvKTk6xH8bDapzp6G5F9'
@@ -138,7 +148,7 @@ connect_container() {
 }
 
 ## Create Docker Volume
-create_volume() {
+volume_create() {
   # PARAM $1 - Volume Name
 
   # Does Volume Exists?
@@ -148,6 +158,20 @@ create_volume() {
     docker volume create $1
   else 
     echo "WARN: Volume '$1' Already Exists"
+  fi
+}
+
+## Delete Docker Volume
+volume_rm() {
+  # PARAM $1 - Volume Name
+
+  # Does Volume Exists?
+  status volume "$1"
+  if [[ $? != 0 ]]; then # YES
+    echo "Removing Volume '$1'"
+    docker volume rm $1
+  else 
+    echo "INFO: Volume '$1' Does not exist"
   fi
 }
 
@@ -175,14 +199,235 @@ stop_container() {
   fi 
 }
 
-## CONTAINERS: DB ##
+build_docker_image() {
+  # PARAM $1 - Local Image Source Path
+  # PARAM $2 - Docker Image Tag
+
+  # PATH for Image SRC
+  IMAGEPATH="${BUILDDIR}/$1"
+
+  # Build Docker Image
+  docker build --tag "$2" "${IMAGEPATH}/."
+}
+
+stage_image_src() {
+  # PARAM $1 - Remote GIT repository
+  # PARAM $2 - Local GIT Repository Path
+
+  # PATH for Image SRC
+  IMAGEPATH="${BUILDDIR}/$2"
+
+  # Does SRC Path Exist?
+  if [ -d "${IMAGEPATH}" ]; then # YES: Update Image Src
+    cd "${IMAGEPATH}"
+    git config pull.rebase false
+    git pull
+    cd "${BASEDIR}"
+  else # NO: Clone Image SRC
+    mkdir -p "${IMAGEPATH}"
+    git clone "$1" "${IMAGEPATH}"
+  fi
+}
+
+## CONTAINERS: RabbitMQ ##
+
+## Initialize RabbitMQ Container
+build_rabbitmq() {
+  IMAGE=$1     # Docker Image Name
+  CONTAINER=$2 # Container Name
+
+  echo "BUILD Container '$CONTAINER'"
+
+  ## STEP 1 : Stop Container
+  # Is Container Running?
+  status container "$CONTAINER"
+  if [[ $? != 0 ]]; then # YES
+    echo "Container '$CONTAINER' is being stopped"
+    stop_container "$CONTAINER"
+  fi
+
+  ## STEP 2 : Remove ANY Existing Volumes
+  volume_rm "${CONTAINER}"
+
+  ## STEP 3 : Initialize Configuration
+
+  # Does Configuration Directory Exist
+  SRC="${SOURCEDIR}/rabbitmq/${CONTAINER}"
+  CONF="${CONTAINERDIR}/rabbitmq/${CONTAINER}"
+  if [ -d "${CONF}" ]; then # YES: Remove it
+    rm -rf "${CONF}"
+  fi
+
+  # Recreate Configuration Directory
+  mkdir -p "${CONF}"
+
+  # Copy Source Onfirguration to Container
+  cp -r "${SRC}/." "$CONF"
+
+  ## STEP 4 : Initialize Container
+
+  ## Initialize Docker Command
+  DOCKERCMD="docker run --rm --name ${CONTAINER}"
+
+  # SET Environment File (Used to Initialize Administration User)
+  DOCKERCMD="${DOCKERCMD} --env-file ${SRC}/.env"
+
+  # SET Volumes
+  DOCKERCMD="${DOCKERCMD} -v ${CONTAINER}:/var/lib/rabbitmq"
+  DOCKERCMD="${DOCKERCMD} -v ${CONF}/conf:/etc/rabbitmq:ro"
+
+  # Add Image Name
+  DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
+
+  # Execute the Command
+  echo $DOCKERCMD
+  $DOCKERCMD
+
+  # Wait for Container to Stabilize and the stop
+  sleep 10
+  stop_container ${CONTAINER}
+}
+
+## Start Single RabbitMQ Server
+start_rabbitmq() {
+  IMAGE=$1     # Docker Image Name
+  CONTAINER=$2 # Container Name
+
+  # Is Container Running?
+  status container "$CONTAINER"
+  if [[ $? == 0 ]]; then # NO
+    ## Start Server
+    echo "Running container '$CONTAINER'"
+
+    # Custom Configuration File
+    CONF="${CONTAINERDIR}/rabbitmq/${CONTAINER}"
+    if [ ! -d "${CONF}" ]; then
+      echo "Need to build '${CONTAINER}' before 1st run"
+      exit 1;
+    fi
+
+    # Make Sure the Volume Exists
+    volume_create "${CONTAINER}"
+
+    ## Initialize Docker Command
+    DOCKERCMD="docker run --rm --name ${CONTAINER}"
+#    DOCKERCMD="docker run"
+
+    # SET Environment File (Used to Initialize Administration User)
+    DOCKERCMD="${DOCKERCMD} --env-file ${CONF}/.env"
+
+    # SET Volumes
+    DOCKERCMD="${DOCKERCMD} -v ${CONTAINER}:/var/lib/rabbitmq"
+    DOCKERCMD="${DOCKERCMD} -v ${CONF}/conf:/etc/rabbitmq:ro"
+
+    # Options based on Mode
+    case "$MODE" in
+      debug)
+        # Expose Port so that we can attach from local system
+        DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:4369:4369"
+        DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:5671:5671"
+        DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:5672:5672"
+        DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:15672:15672"
+        DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:25672:25672"
+        ;;
+      *)
+        # Expose Port so that we can attach to management from remote system 
+        DOCKERCMD="${DOCKERCMD} -p 15672:15672"
+        ;;
+    esac
+
+    # Add Image Name
+    DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
+
+    # Execute the Command
+    echo $DOCKERCMD
+    $DOCKERCMD
+
+    # Attach to Storage Network
+    connect_container net-ov-storage "${CONTAINER}"
+  fi
+}
+
+## Initialize RabbitMQ
+
+## Initialize RabbitMQ Container
+build_mq() {
+  IMAGE="${RABBITMQ}"
+
+  # Options based on Mode
+  case "$MODE" in
+    debug) # Debug DB Server
+      build_rabbitmq $IMAGE "ov-debug-mq"
+      ;;
+    single) # NOT Debug: Single Shard Server
+      build_rabbitmq $IMAGE "ov-s1-mq"
+      ;;
+    dual) # NOT Debug: Dual Shard Server
+      build_rabbitmq $IMAGE "ov-d1-mq"
+      build_rabbitmq $IMAGE "ov-d2-mq"
+      ;; 
+  esac
+}
+
+## Start All RabbitMQ Servers (Depends on Mode)
+start_mq() {
+  IMAGE="${RABBITMQ}"
+
+  # Make Sure net-ov-storage network exists
+  network_create 'net-ov-storage'
+
+  # Options based on Mode
+  case "$MODE" in
+    debug) # Debug DB Server
+      start_rabbitmq $IMAGE "ov-debug-mq"
+      ;;
+    single) # NOT Debug: Single Shard Server
+      start_rabbitmq $IMAGE "ov-s1-mq"
+      ;;
+    dual) # NOT Debug: Dual Shard Server
+      start_rabbitmq $IMAGE "ov-d1-mq"
+      start_rabbitmq $IMAGE "ov-d2-mq"
+      ;; 
+  esac
+}
+
+## Stops All RabbitMQ Servers (Depends on MODE)
+stop_mq() {
+  # Options based on Mode
+  case "$MODE" in
+    debug) # Debug DB Server
+      stop_container "ov-debug-mq"
+      ;;
+    single) # NOT Debug: Single Shard Server
+      stop_container "ov-s1-mq"
+      ;;
+    dual) # NOT Debug: Dual Shard Server
+      stop_container "ov-d1-mq" &
+      stop_container "ov-d2-mq" &
+      ;; 
+  esac
+}
+
+## Attach Logger to RabbitMQ Container
+logs_rabbitmq() {
+  # Options based on Mode
+  case "$MODE" in
+    debug) # Debug DB Server
+      logs_container "ov-debug-mq"
+      ;;
+    single) # NOT Debug: Single Shard Server
+      logs_container "ov-s1-mq"
+      ;;
+    dual) # NOT Debug: Dual Shard Server
+      echo "Can't Log more than one server"
+      ;; 
+  esac
+}
 
 ## Start Single Database Server
 start_db_server() {
-  # PARAM $1 - Docker Image Name
-  # PARAM $2 - Container Name
-  IMAGE=$1
-  CONTAINER=$2
+  IMAGE=$1     # Docker Image Name
+  CONTAINER=$2 # Container Name
 
   # Is Container Running?
   status container "$CONTAINER"
@@ -191,10 +436,10 @@ start_db_server() {
     echo "Running container '$CONTAINER'"
 
     # Custom Configuration File
-    CONF="${CONFDIR}/mariadb/${CONTAINER}.conf"
+    CONF="${CONTAINERDIR}/mariadb/${CONTAINER}.conf"
 
     # Create Container Volume
-    create_volume "${CONTAINER}"
+    volume_create "${CONTAINER}"
 
     ## Initialize Docker Command
     DOCKERCMD="docker run --rm --name ${CONTAINER}"
@@ -215,7 +460,6 @@ start_db_server() {
     fi
 
     # Add Image Name
-    DOCKERCMD="${DOCKERCMD} --name ${CONTAINER}"
     DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
 
     # Execute the Command
@@ -283,35 +527,6 @@ logs_db() {
 }
 
 ## CONTAINERS: BACK-END Servers ##
-build_docker_image() {
-  # PARAM $1 - Local Image Source Path
-  # PARAM $2 - Docker Image Tag
-
-  # PATH for Image SRC
-  IMAGEPATH="${BUILDDIR}/$1"
-
-  # Build Docker Image
-  docker build --tag "$2" "${IMAGEPATH}/."
-}
-
-stage_image_src() {
-  # PARAM $1 - Remote GIT repository
-  # PARAM $2 - Local GIT Repository Path
-
-  # PATH for Image SRC
-  IMAGEPATH="${BUILDDIR}/$2"
-
-  # Does SRC Path Exist?
-  if [ -d "${IMAGEPATH}" ]; then # YES: Update Image Src
-    cd "${IMAGEPATH}"
-    git config pull.rebase false
-    git pull
-    cd "${BASEDIR}"
-  else # NO: Clone Image SRC
-    mkdir -p "${IMAGEPATH}"
-    git clone "$1" "${IMAGEPATH}"
-  fi
-}
 
 ## Build Docker Image for API Server
 build_api() {
@@ -335,7 +550,7 @@ start_api() {
     echo "Running container '$CONTAINER'"
 
     # Custom Configuration File
-    CONF="${CONFDIR}/api/server.${MODE}.json"
+    CONF="${CONTAINERDIR}/api/server.${MODE}.json"
 
     # Make Sure required networks exist
     network_create 'net-ov-storage'
@@ -364,6 +579,15 @@ start_api() {
     # Attach to Storage Backplane Network
     connect_container net-ov-storage "${CONTAINER}"
   fi 
+}
+
+## Build Docker Image for Queue Email Sender
+build_mailer() {
+  IMAGESRC="${QMAILERSRC}"
+  IMAGETAG="${QMAILER}"
+
+  stage_image_src "${IMAGESRC}" fe
+  build_docker_image fe "${IMAGETAG}"
 }
 
 ## CONTAINERS: FRONT-END Servers ##
@@ -416,18 +640,22 @@ start_all() {
 
   ## Start Data Servers ##
   start_db &
+  start_mq &
 
   # Delay 10 Seconds to Allow for Server Initialization
   sleep 10
 
+  # Start Queue Processors
+  start_mailer &
+
   ## Start Backend Servers ##
-  start_api  ov-api-server &
+  start_api ov-api-server &
 
   # Delay 10 Seconds to Allow for Server Initialization
   sleep 5
 
   ## Start Frontend Server
-  start_fe  ov-fe-server
+  start_fe ov-fe-server
 }
 
 ## Stop All Application Containers (Depends on MODE)
@@ -436,13 +664,24 @@ stop_all() {
   echo "Stopping Running Servers"
 
   # Stop Front-End Server
-  stop_container ov-fe-server
+  stop_container ov-fe-server &
 
   # Stop Back-End Server
-  stop_container ov-api-server
-  
+  stop_container ov-api-server &
+
+  # Wait for FrontEnd and API Server
+  sleep 10
+
+  stop_mailer &
+
+  # Wait for Queue Processors
+  sleep 10
+
+  # Stop RabbitMQ Servers
+  stop_mq &
+
   # Stop Data-Servers
-  stop_db 
+  stop_db  &
 
   # Delay 10 Seconds to Allow for Complete Stop
   sleep 15
@@ -477,6 +716,12 @@ build() {
     fe)
       build_fe
       ;;
+    mq)
+      build_mq
+      ;;
+    mailer)
+      build_mailer
+      ;;
     *)
       usage
       ;;
@@ -492,14 +737,20 @@ start() {
     all)
       start_all
       ;;
-    db)
-      start_db 
-      ;;
     api)
       start_api ov-api-server
       ;;
+    db)
+      start_db 
+      ;;
     fe)
       start_fe ov-fe-server
+      ;;
+    mailer)
+      start_mailer
+      ;;
+    mq)
+      start_mq 
       ;;
     *)
       usage
@@ -516,14 +767,20 @@ stop() {
     all)
       stop_all
       ;;
-    db)
-      stop_db
-      ;;
     api)
       stop_container ov-api-server
       ;;
+    db)
+      stop_db
+      ;;
     fe)
       stop_container ov-fe-server
+      ;;
+    mailer)
+      stop_mailer
+      ;;
+    mq)
+      stop_mq 
       ;;
     *)
       usage
@@ -534,14 +791,20 @@ stop() {
 ## SHELL COMMAND: Log - Attach to Container Logger
 log() {
   case "$1" in
-    db)
-      logs_db
-      ;;
     api)
       logs_container ov-api-server
       ;;
+    db)
+      logs_db
+      ;;
     fe)
       logs_container ov-fe-server
+      ;;
+    mailer)
+      logs_mailer
+      ;;
+    mq)
+      logs_rabbitmq 
       ;;
     *)
       usage
@@ -555,9 +818,6 @@ shell() {
   echo "Console for '$1'"
 
   case "$1" in
-    db)
-      logs_db
-      ;;
     api)
       docker exec -it ov-api-server /bin/ash
       ;;
@@ -599,7 +859,7 @@ usage() {
   echo "       $0 mode" >&2
   echo >&2
   echo "Containers:"
-  echo "  db | api | fe" >&2
+  echo "  db | mq | api | fe | mailer" >&2
   echo >&2
   echo "MODES:" >&2
   echo "  debug  - Local Debugging" >&2
