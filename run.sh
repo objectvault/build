@@ -830,7 +830,7 @@ stop() {
       stop_container ov-fe-server
       ;;
     mailer)
-      stop_mailer
+      stop_container ov-mq-mailer
       ;;
     mq)
       stop_mq 
