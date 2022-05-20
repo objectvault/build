@@ -37,7 +37,7 @@ RABBITMQ="rabbitmq:management-alpine"
 MARIADB="bitnami/mariadb:latest" 
 APISERVER="local/ov-api-server"
 FESERVER="local/ov-fe-server"
-QMAILER="local/ov-q-mailer"
+QMAILER="local/ov-mq-mailer"
 
 ## NETWORKS
 NETWORKS="net-ov-storage"
@@ -585,9 +585,62 @@ start_api() {
 build_mailer() {
   IMAGESRC="${QMAILERSRC}"
   IMAGETAG="${QMAILER}"
+  BUILDDIR="mailer"
 
-  stage_image_src "${IMAGESRC}" fe
-  build_docker_image fe "${IMAGETAG}"
+  # Build Docker Image
+  stage_image_src "${IMAGESRC}" "${BUILDDIR}"
+  build_docker_image "${BUILDDIR}" "${IMAGETAG}"
+
+    # Does Configuration Directory Exist
+  SRC="${SOURCEDIR}/mailer"
+  CONF="${CONTAINERDIR}/mailer"
+  if [ -d "${CONF}" ]; then # YES: Remove it
+    rm -rf "${CONF}"
+  fi
+
+  # Recreate Configuration Directory
+  mkdir -p "${CONF}"
+
+  # Copy Source Onfirguration to Container
+  cp -r "${SRC}/." "$CONF"
+}
+
+start_mailer() {
+  # PARAM $1 - Container Name
+  IMAGE="${QMAILER}"
+  CONTAINER=$1
+
+  # Is Container Running?
+  status container "$CONTAINER"
+  if [[ $? == 0 ]]; then # NO
+    ## Start Mongo
+    echo "Running container '$CONTAINER'"
+
+    # Custom Configuration File
+    CONF="${CONTAINERDIR}/mailer/mailer.${MODE}.json"
+    TEMPLATE="${CONTAINERDIR}/mailer/templates.${MODE}"
+
+    # Make Sure required networks exist
+    network_create 'net-ov-storage'
+
+    ## Initialize Docker Command
+    DOCKERCMD="docker run --rm --name ${CONTAINER}"
+#    DOCKERCMD="docker run"
+
+    # Set Server Configuration File
+    DOCKERCMD="${DOCKERCMD} -v ${VOLUMESDIR}/mailer1:/app/templates:ro"
+    DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/mailer.json:ro"
+
+    # Add Image Name
+    DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
+
+    # Execute the Command
+    echo $DOCKERCMD
+    $DOCKERCMD
+
+    # Attach to Storage Backplane Network
+    connect_container net-ov-storage "${CONTAINER}"
+  fi 
 }
 
 ## CONTAINERS: FRONT-END Servers ##
@@ -747,7 +800,7 @@ start() {
       start_fe ov-fe-server
       ;;
     mailer)
-      start_mailer
+      start_mailer  ov-mq-mailer
       ;;
     mq)
       start_mq 
@@ -801,7 +854,7 @@ log() {
       logs_container ov-fe-server
       ;;
     mailer)
-      logs_mailer
+      logs_container ov-mq-mailer
       ;;
     mq)
       logs_rabbitmq 
@@ -823,6 +876,9 @@ shell() {
       ;;
     fe)
       docker exec -it ov-fe-server /bin/ash
+      ;;
+    mailer)
+      docker exec -it ov-mq-mailer /bin/ash
       ;;
     *)
       usage
