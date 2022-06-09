@@ -1,5 +1,11 @@
 # Directories
 ##############
-/builds
-/containers
-/notes
+builds
+containers
+notes
+dumps
+
+# Test Configuration Files (Contain Passwords)
+sources/**/server.*.json
+sources/**/mailer.*.json
+sources/**/app.config.*.json

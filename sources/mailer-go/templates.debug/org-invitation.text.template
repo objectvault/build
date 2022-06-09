@@ -1,0 +1,11 @@
+Hi {{.name}},
+
+You have been invited to join ObjectVault organization [{{.org}}].
+
+To accept, or decline, the invitation the registration, copy and paste the URL below into your web browser.
+This request is only valid for the next {{.hours}} hours, after which, it will be deleted.
+
+URL [ {{.confirmationurl}} ]
+
+Thanks,
+ObjectVault Team

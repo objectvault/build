@@ -1,0 +1,32 @@
+{
+  "queue": {
+    "servers": [{
+      "user": "**rabbit-mq-user**",
+      "password": "**rabbit-mq-password**",
+      "server": {
+        "host": "**rabbit-mq-server**",
+        "port": 5672
+      },
+      "vhost": "mailer"
+    }]
+  },
+  "relay": {
+    "server": {
+      "host": "smtp.mailtrap.io",
+      "port": 2525
+    },
+    "authentication": {
+      "user": "**user**", 
+      "password": "**password**"
+    }
+  },
+  "paths": {
+    "templates": "./templates",
+    "output": "./output"
+  },
+  "options": {
+    "conn-max-retries": 3,
+    "conn-retry-interval": 5,
+    "poll-queue": "inbox"
+  }
+}
