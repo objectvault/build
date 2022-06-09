@@ -21,7 +21,8 @@ MODE=${MODE:-"debug"}
 ## IMAGE Sources
 APIIMAGESRC="https://github.com/objectvault/api-services.git"
 FEIMAGESRC="https://github.com/objectvault/frontend.git"
-QMAILERSRC="https://github.com/objectvault/queue-smtp-mailer.git"
+QMAILERSRCGO="https://github.com/objectvault/queue-smtp-mailer.git"
+QMAILERSRCNODE="https://github.com/objectvault/queue-node-mailer.git"
 
 ## BUILD Directory
 BUILDDIR="${BASEDIR}/builds"
@@ -581,19 +582,19 @@ start_api() {
   fi 
 }
 
-## Build Docker Image for Queue Email Sender
-build_mailer() {
-  IMAGESRC="${QMAILERSRC}"
+## Build Docker Image for Queue Email Sender (GO Version)
+build_mailer_go() {
+  IMAGESRC="${QMAILERSRCGO}"
   IMAGETAG="${QMAILER}"
-  BUILDDIR="mailer"
+  BUILDDIR="mailer-go"
 
   # Build Docker Image
   stage_image_src "${IMAGESRC}" "${BUILDDIR}"
   build_docker_image "${BUILDDIR}" "${IMAGETAG}"
 
-    # Does Configuration Directory Exist
-  SRC="${SOURCEDIR}/mailer"
-  CONF="${CONTAINERDIR}/mailer"
+  # Does Configuration Directory Exist
+  SRC="${SOURCEDIR}/mailer-go"
+  CONF="${CONTAINERDIR}/mailer-go"
   if [ -d "${CONF}" ]; then # YES: Remove it
     rm -rf "${CONF}"
   fi
@@ -601,11 +602,11 @@ build_mailer() {
   # Recreate Configuration Directory
   mkdir -p "${CONF}"
 
-  # Copy Source Onfirguration to Container
+  # Copy Source Configuration to Container
   cp -r "${SRC}/." "$CONF"
 }
 
-start_mailer() {
+start_mailer_go() {
   # PARAM $1 - Container Name
   IMAGE="${QMAILER}"
   CONTAINER=$1
@@ -617,8 +618,8 @@ start_mailer() {
     echo "Running container '$CONTAINER'"
 
     # Custom Configuration File
-    CONF="${CONTAINERDIR}/mailer/mailer.${MODE}.json"
-    TEMPLATE="${CONTAINERDIR}/mailer/templates.${MODE}"
+    CONF="${CONTAINERDIR}/mailer-go/mailer.${MODE}.json"
+    TEMPLATES="${CONTAINERDIR}/mailer-go/templates.${MODE}"
 
     # Make Sure required networks exist
     network_create 'net-ov-storage'
@@ -628,8 +629,72 @@ start_mailer() {
 #    DOCKERCMD="docker run"
 
     # Set Server Configuration File
-    DOCKERCMD="${DOCKERCMD} -v ${VOLUMESDIR}/mailer1:/app/templates:ro"
+    DOCKERCMD="${DOCKERCMD} -v ${TEMPLATES}:/app/templates:ro"
     DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/mailer.json:ro"
+
+    # Add Image Name
+    DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
+
+    # Execute the Command
+    echo $DOCKERCMD
+    $DOCKERCMD
+
+    # Attach to Storage Backplane Network
+    connect_container net-ov-storage "${CONTAINER}"
+  fi 
+}
+
+## Build Docker Image for Queue Email Sender (Node Version)
+build_mailer_node() {
+  IMAGESRC="${QMAILERSRCNODE}"
+  IMAGETAG="${QMAILER}"
+  BUILDDIR="mailer-node"
+
+  # Build Docker Image
+  stage_image_src "${IMAGESRC}" "${BUILDDIR}"
+  build_docker_image "${BUILDDIR}" "${IMAGETAG}"
+
+    # Does Configuration Directory Exist
+  SRC="${SOURCEDIR}/mailer-node"
+  CONF="${CONTAINERDIR}/mailer-node"
+  if [ -d "${CONF}" ]; then # YES: Remove it
+    rm -rf "${CONF}"
+  fi
+
+  # Recreate Configuration Directory
+  mkdir -p "${CONF}"
+
+  # Copy Source Onfirguration to Container
+  cp -r "${SRC}/." "$CONF"
+}
+
+start_mailer_node() {
+  # PARAM $1 - Container Name
+  IMAGE="${QMAILER}"
+  CONTAINER=$1
+
+  # Is Container Running?
+  status container "$CONTAINER"
+  if [[ $? == 0 ]]; then # NO
+    ## Start Mongo
+    echo "Running container '$CONTAINER'"
+
+    # Custom Configuration File
+    CONF="${CONTAINERDIR}/mailer-node/app.config.${MODE}.json"
+    MIXINS="${CONTAINERDIR}/mailer-node/mixins.${MODE}"
+    TEMPLATES="${CONTAINERDIR}/mailer-node/templates.${MODE}"
+
+    # Make Sure required networks exist
+    network_create 'net-ov-storage'
+
+    ## Initialize Docker Command
+    DOCKERCMD="docker run --rm --name ${CONTAINER}"
+#    DOCKERCMD="docker run"
+
+    # Set Server Configuration File
+    DOCKERCMD="${DOCKERCMD} -v ${MIXINS}:/app/mixins:ro"
+    DOCKERCMD="${DOCKERCMD} -v ${TEMPLATES}:/app/templates:ro"
+    DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/app.config.json:ro"
 
     # Add Image Name
     DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
@@ -699,7 +764,7 @@ start_all() {
   sleep 10
 
   # Start Queue Processors
-  start_mailer &
+  start_mailer_node ov-mq-mailer &
 
   ## Start Backend Servers ##
   start_api ov-api-server &
@@ -725,7 +790,7 @@ stop_all() {
   # Wait for FrontEnd and API Server
   sleep 10
 
-  stop_mailer &
+  stop_container ov-mq-mailer &
 
   # Wait for Queue Processors
   sleep 10
@@ -752,6 +817,9 @@ build_all() {
 
   # Build Frontned Server Docker Images
   build_fe
+
+  # Build RaabitMQ Mail Processor
+  build_mailer_node
 }
 
 ## SHELL COMMAND: Start - On or More Application Containers
@@ -773,7 +841,7 @@ build() {
       build_mq
       ;;
     mailer)
-      build_mailer
+      build_mailer_node
       ;;
     *)
       usage
@@ -800,7 +868,7 @@ start() {
       start_fe ov-fe-server
       ;;
     mailer)
-      start_mailer  ov-mq-mailer
+      start_mailer_node ov-mq-mailer
       ;;
     mq)
       start_mq 
@@ -908,7 +976,7 @@ mode() {
 ## Dsiplay Usage
 usage() {
   echo "Usage: $0 {start|stop}  [all|{container}] DEFAULT: all" >&2
-  echo "       $0 build         [all|api|fe] DEFAULT: all" >&2
+  echo "       $0 build         [all|api|fe|mailer] DEFAULT: all" >&2
   echo "       $0 log           {container}" >&2
   echo "       $0 shell         {container}" >&2
   echo "       $0 networks      rm|create" >&2
