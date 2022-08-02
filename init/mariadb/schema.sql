@@ -182,14 +182,55 @@ CREATE TABLE IF NOT EXISTS `vault`.`ciphers` (
     PRIMARY KEY (`id`)
 );
 
+-- REQUESTS
+-- REQUEST OBJECT
+CREATE TABLE IF NOT EXISTS `vault`.`requests` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'UNIQUE ENTRY ID',
+    `guid` CHAR(36) NOT NULL COMMENT 'GUID for Request',
+    `type` VARCHAR(128) NOT NULL COMMENT 'Request Type',
+    `ref_object` BIGINT UNSIGNED NULL COMMENT 'OPTIONAL: If Request is Relative to an Object',
+    `params` TEXT COMMENT 'OPTIONAL (JSON Object): Request Parameters',
+    `props` TEXT COMMENT 'OPTIONAL (JSON Object): Request Properties',
+    `expiration` TIMESTAMP NULL COMMENT 'Request Experiration Date',
+    `creator` BIGINT UNSIGNED NULL COMMENT 'GLOBAL USER ID of Creator',
+    `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation TimeStamp',
+    `modifier` BIGINT UNSIGNED NULL COMMENT 'GLOBAL USER ID of Last Modifier User',
+    `modified` TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last Modification TimeStamp',
+    PRIMARY KEY (`id`)
+    UNIQUE INDEX `UIRQ_ti` (`type` ASC, `id` ASC) VISIBLE
+);
+
+-- REQUEST REGISTRY
+CREATE TABLE IF NOT EXISTS `vault`.`registry_requests` (
+    `id_request` BIGINT UNSIGNED NOT NULL COMMENT 'SHARD ID of Invitation',
+    `guid` CHAR(36) NOT NULL COMMENT 'GUID for Request',
+    `type` VARCHAR(128) NOT NULL COMMENT 'Request Type',
+    `ref_object` BIGINT UNSIGNED NULL COMMENT 'OPTIONAL: If Request is Relative to an Object',
+    `expiration` TIMESTAMP NULL COMMENT 'Request Experiration Date',
+    `state` SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Request Processing State',
+    `creator` BIGINT UNSIGNED NULL COMMENT 'GLOBAL USER ID of Creator',
+    `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation TimeStamp',
+    PRIMARY KEY (`id_request`),
+    UNIQUE INDEX `UIRQ_guid` (`guid` ASC) VISIBLE,
+    INDEX `IRQ_ots` (`ref_object` ASC, `type` ASC, `state` ASC) VISIBLE,
+    INDEX `IRQ_ts` (`type` ASC, `state` ASC) VISIBLE,
+    INDEX `IRQ_sti` (`state` ASC, `type` ASC, `id_request` ASC) VISIBLE
+);
+
 -- ACTION QUEUE
 -- ASYNCHRONOUS ACTIONs (like Invitation Requests, Email Confirmation, etc.)
 CREATE TABLE IF NOT EXISTS `vault`.`actions` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'UNIQUE ENTRY ID',
-    `type` INT UNSIGNED NOT NULL COMMENT 'Entry Type',
-    `expiration` TIMESTAMP NOT NULL COMMENT 'LOCAL Store ID',
-    `object` TEXT COMMENT 'OPTIONAL JSON Object',
-    PRIMARY KEY (`id`)
+    `guid` CHAR(36) NOT NULL COMMENT 'GUID for Action',
+    `parent` CHAR(36) NULL COMMENT 'Parent GUID for Action',
+    `type` VARCHAR(128) NOT NULL COMMENT 'Action Type',
+    `request` BIGINT UNSIGNED NULL COMMENT 'GLOBAL REQUEST ID',
+    `params` TEXT COMMENT 'OPTIONAL (JSON Object): Action Parameters',
+    `props` TEXT COMMENT 'OPTIONAL (JSON Object): Action Properties',
+    `state` SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Action Processing State',
+    `creator` BIGINT UNSIGNED NULL COMMENT 'GLOBAL USER ID of Creator',
+    `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation TimeStamp',
+    PRIMARY KEY (`guid`),
+    INDEX `IACT_tg` (`type` ASC, `guid` ASC) VISIBLE
 );
 
 -- TEMPLATE OBJECTS
