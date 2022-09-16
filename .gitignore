@@ -4,6 +4,7 @@ builds
 containers
 notes
 dumps
+tmp
 
 # Test Configuration Files (Contain Passwords)
 sources/**/server.*.json
