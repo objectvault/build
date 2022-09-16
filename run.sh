@@ -18,11 +18,20 @@ export BASEDIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 ## WORKING MODE [DEFAULT: debug]
 MODE=${MODE:-"debug"}
 
+## GITHUB ObjectVault Project BASE URL
+GITHUB_OV_URL="https://github.com/objectvault"
+
 ## IMAGE Sources
 APIIMAGESRC="https://github.com/objectvault/api-services.git"
 FEIMAGESRC="https://github.com/objectvault/frontend.git"
 QMAILERSRCGO="https://github.com/objectvault/queue-smtp-mailer.git"
-QMAILERSRCNODE="https://github.com/objectvault/queue-node-mailer.git"
+
+## IMAGES
+RABBITMQ="rabbitmq:management-alpine"
+MARIADB="bitnami/mariadb:latest"
+APISERVER="local/ov-api-server"
+FESERVER="local/ov-fe-server"
+QMAILER="local/ov-mq-mailer"
 
 ## BUILD Directory
 BUILDDIR="${BASEDIR}/builds"
@@ -33,13 +42,6 @@ CONTAINERDIR="${BASEDIR}/containers"
 ## CONTAINERS Source Configuration Directory
 SOURCEDIR="${BASEDIR}/sources"
 
-## IMAGES
-RABBITMQ="rabbitmq:management-alpine"
-MARIADB="bitnami/mariadb:latest" 
-APISERVER="local/ov-api-server"
-FESERVER="local/ov-fe-server"
-QMAILER="local/ov-mq-mailer"
-
 ## NETWORKS
 NETWORKS="net-ov-storage"
 
@@ -47,7 +49,7 @@ NETWORKS="net-ov-storage"
 
 # IMPORTANT - QNAP Firmware Updates will clear any paths outside /shares
 # this means that, any VOLUMES that are not created using docker volume create
-# will disappear a long with any data store in them (therefore any server that 
+# will disappear a long with any data store in them (therefore any server that
 # requires a permanent store for it's state, i.e. database,needs to have a volume)
 
 # Volumes whose state is not managed by the server
@@ -60,7 +62,73 @@ CONFSRC="${BASEDIR}/conf/sources"
 ## DOCKER CONTAINER Environment Properties
 MARIADB_ROOT_PASSWORD='rvKTk6xH8bDapzp6G5F9'
 
-## Status Check 
+## Get URL for ObjectVault Repository for Specific Release
+github_clone_release() {
+  # PARAM $1 - Repository
+  # PARAM $2 - Github Release Tag
+  # RETURNS:
+  # 0 - On Cloned
+  # 1 - Failed
+  local url="${GITHUB_OV_URL}/$1.git"
+  local output="${BUILDDIR}/$1"
+
+  # Does Build Directory Exist?
+  if [ ! -d "${BUILDDIR}" ]; then # NO: Create it
+    mkdir "${BUILDDIR}"
+  fi
+
+  # Does Repositry Directory Exist?
+  if [ -d "${output}" ]; then # YES: Remove it
+    rm -rf "${output}"
+  fi
+
+  # Clone a Release or Latest?
+  if [[ $# == 1 ]]; then # CLONE: Latest
+    git clone -q --depth 1 ${url} ${output}
+  else # CLONE: Release
+    git clone -q --depth 1 --branch $2 ${url} ${output}
+  fi
+
+  # Cloned Repository?
+  if [[ $? == 0 ]]; then # YES: Remove .git
+    rm -rf ${output}/.git
+    return 0
+  fi
+  # ELSE: Failed to Clone Repository/Release
+  return 1
+}
+
+stage_image_src() {
+  # PARAM $1 - Remote GIT repository
+  # PARAM $2 - Local GIT Repository Path
+
+  # PATH for Image SRC
+  IMAGEPATH="${BUILDDIR}/$2"
+
+  # Does SRC Path Exist?
+  if [ -d "${IMAGEPATH}" ]; then # YES: Update Image Src
+    cd "${IMAGEPATH}"
+    git config pull.rebase false
+    git pull
+    cd "${BASEDIR}"
+  else # NO: Clone Image SRC
+    mkdir -p "${IMAGEPATH}"
+    git clone "$1" "${IMAGEPATH}"
+  fi
+}
+
+build_docker_image() {
+  # PARAM $1 - Local Image Source Path
+  # PARAM $2 - Docker Image Tag
+
+  # PATH for Image SRC
+  IMAGEPATH="${BUILDDIR}/$1"
+
+  # Build Docker Image
+  docker build --tag "$2" "${IMAGEPATH}/."
+}
+
+## Status Check
 status() {
   # PARAM $1 - type of object volume | container | network
   # PARAM $2 - name of object
@@ -72,7 +140,7 @@ status() {
   local s="$(docker $1 ls -f name=$2 -q 2> /dev/null)"
   if [ "$s" == "" ]; then # NO
     return 0
-  fi 
+  fi
   # ELSE: YES
   return 1
 }
@@ -81,14 +149,14 @@ status() {
 network_rm() {
   # PARAM $1 - Network Name
   NETWORK=$1
-  
+
   # Does Network Exists?
   status network "${NETWORK}"
   if [[ $? == 1 ]]; then # YES
     # Remove Existing Networks
     echo "Removing Network '$NETWORK'"
     docker network rm "${NETWORK}"
-  fi 
+  fi
 }
 
 ## Remove ALL Docker Networks for Application
@@ -102,7 +170,7 @@ networks_rm() {
 network_create() {
   # PARAM $1 - Network Name
   NETWORK=$1
-  
+
   # Does Network Exists?
   status network "${NETWORK}"
   if [[ $? == 0 ]]; then # NO
@@ -115,7 +183,7 @@ network_create() {
         ARGS="${NETWORK}"
       ;;
     esac
-    
+
     # Create
     echo "Creating Network '$NETWORK'"
     docker network create ${ARGS}
@@ -141,7 +209,7 @@ connect_container() {
   # is ALIAS Set?
   if [ "${ALIAS}" == "" ]; then # NO: User Container Name as Alias
     ALIAS="${CONTAINER}"
-  fi 
+  fi
 
   # Attach Container to Network
   docker network connect --alias "${ALIAS}" "${NETWORK}" "${CONTAINER}"
@@ -157,7 +225,7 @@ volume_create() {
   if [[ $? == 0 ]]; then # NO
     echo "Creating Volume '$1'"
     docker volume create $1
-  else 
+  else
     echo "WARN: Volume '$1' Already Exists"
   fi
 }
@@ -171,7 +239,7 @@ volume_rm() {
   if [[ $? != 0 ]]; then # YES
     echo "Removing Volume '$1'"
     docker volume rm $1
-  else 
+  else
     echo "INFO: Volume '$1' Does not exist"
   fi
 }
@@ -180,7 +248,7 @@ volume_rm() {
 logs_container() {
   # PARAM $1 - Container Name
 
-  ## NOTE: Don't Test for Container Running in the case we wan't to see problems 
+  ## NOTE: Don't Test for Container Running in the case we wan't to see problems
   ## with stopped containers
   echo "Logging container '$1'"
   docker logs -f "$1"
@@ -197,36 +265,6 @@ stop_container() {
     docker stop "$1"
   else # NO
     echo "Container '$1' NOT Running"
-  fi 
-}
-
-build_docker_image() {
-  # PARAM $1 - Local Image Source Path
-  # PARAM $2 - Docker Image Tag
-
-  # PATH for Image SRC
-  IMAGEPATH="${BUILDDIR}/$1"
-
-  # Build Docker Image
-  docker build --tag "$2" "${IMAGEPATH}/."
-}
-
-stage_image_src() {
-  # PARAM $1 - Remote GIT repository
-  # PARAM $2 - Local GIT Repository Path
-
-  # PATH for Image SRC
-  IMAGEPATH="${BUILDDIR}/$2"
-
-  # Does SRC Path Exist?
-  if [ -d "${IMAGEPATH}" ]; then # YES: Update Image Src
-    cd "${IMAGEPATH}"
-    git config pull.rebase false
-    git pull
-    cd "${BASEDIR}"
-  else # NO: Clone Image SRC
-    mkdir -p "${IMAGEPATH}"
-    git clone "$1" "${IMAGEPATH}"
   fi
 }
 
@@ -332,7 +370,7 @@ start_rabbitmq() {
         DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:25672:25672"
         ;;
       *)
-        # Expose Port so that we can attach to management from remote system 
+        # Expose Port so that we can attach to management from remote system
         DOCKERCMD="${DOCKERCMD} -p 15672:15672"
         ;;
     esac
@@ -366,7 +404,7 @@ build_mq() {
     dual) # NOT Debug: Dual Shard Server
       build_rabbitmq $IMAGE "ov-d1-mq"
       build_rabbitmq $IMAGE "ov-d2-mq"
-      ;; 
+      ;;
   esac
 }
 
@@ -388,7 +426,7 @@ start_mq() {
     dual) # NOT Debug: Dual Shard Server
       start_rabbitmq $IMAGE "ov-d1-mq"
       start_rabbitmq $IMAGE "ov-d2-mq"
-      ;; 
+      ;;
   esac
 }
 
@@ -405,7 +443,7 @@ stop_mq() {
     dual) # NOT Debug: Dual Shard Server
       stop_container "ov-d1-mq" &
       stop_container "ov-d2-mq" &
-      ;; 
+      ;;
   esac
 }
 
@@ -421,7 +459,7 @@ logs_rabbitmq() {
       ;;
     dual) # NOT Debug: Dual Shard Server
       echo "Can't Log more than one server"
-      ;; 
+      ;;
   esac
 }
 
@@ -432,7 +470,7 @@ start_db_server() {
 
   # Is Container Running?
   status container "$CONTAINER"
-  if [[ $? == 0 ]]; then # NO  
+  if [[ $? == 0 ]]; then # NO
     ## Start an Instance of MariaDB
     echo "Running container '$CONTAINER'"
 
@@ -453,7 +491,7 @@ start_db_server() {
     # Expose Port so that we can attach from local system (Allows Access to DB)
     DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:3306:3306"
 
-    # Is Debug? 
+    # Is Debug?
     if [ "${MODE}" == "debug" ]; then  # YES: Image OPTIONS
       DOCKERCMD="${DOCKERCMD} -e ALLOW_EMPTY_PASSWORD=yes"
     else # NO: Image OPTIONS
@@ -469,7 +507,7 @@ start_db_server() {
 
     # Attach to Storage Network
     connect_container net-ov-storage "${CONTAINER}"
-  fi 
+  fi
 }
 
 ## Start All Database Servers (Depends on Mode)
@@ -490,7 +528,7 @@ start_db() {
     dual) # NOT Debug: Dual Shard Server
       start_db_server $IMAGE "ov-d1-db"
       start_db_server $IMAGE "ov-d2-db"
-      ;; 
+      ;;
   esac
 }
 
@@ -507,7 +545,7 @@ stop_db() {
     dual) # NOT Debug: Dual Shard Server
       stop_container "ov-d1-db" &
       stop_container "ov-d2-db" &
-      ;; 
+      ;;
   esac
 }
 
@@ -523,7 +561,7 @@ logs_db() {
       ;;
     dual) # NOT Debug: Dual Shard Server
       echo "Can't Log more than one server"
-      ;; 
+      ;;
   esac
 }
 
@@ -563,8 +601,8 @@ start_api() {
     # Set Server Configuration File
     DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/server.json:ro"
 
-    # Is Debug DB? 
-    if [ "$MODE" == "debug" ]; then  
+    # Is Debug DB?
+    if [ "$MODE" == "debug" ]; then
       # Expose Port so that we can attach from local system
       DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:3000:3000"
     fi
@@ -579,7 +617,7 @@ start_api() {
 
     # Attach to Storage Backplane Network
     connect_container net-ov-storage "${CONTAINER}"
-  fi 
+  fi
 }
 
 ## Build Docker Image for Queue Email Sender (GO Version)
@@ -626,7 +664,10 @@ start_mailer_go() {
 
     ## Initialize Docker Command
     DOCKERCMD="docker run --rm --name ${CONTAINER}"
-#    DOCKERCMD="docker run"
+
+    ## Attach to Network
+    DOCKERCMD="docker run --rm --name ${CONTAINER}"
+    DOCKERCMD="${DOCKERCMD} -n net-ov-storage"
 
     # Set Server Configuration File
     DOCKERCMD="${DOCKERCMD} -v ${TEMPLATES}:/app/templates:ro"
@@ -638,10 +679,81 @@ start_mailer_go() {
     # Execute the Command
     echo $DOCKERCMD
     $DOCKERCMD
+  fi
+}
+
+## Build Docker Image for Queue Email Sender (Node Version)
+build_processor_node() {
+  REPO="queue-node-processor"
+  VERSION="v0.0.2"
+  IMAGE="ov-queue-processor"
+
+  # Stage Image from GITHUB
+  github_clone_release "${REPO}" "${VERSION}"
+
+  # Build Docker Image
+  build_docker_image "${REPO}" "local/${IMAGE}:${VERSION}"
+
+  # Does Configuration Directory Exist?
+  SRC="${SOURCEDIR}/${IMAGE}"
+  if [ -d "${SRC}" ]; then # YES
+
+    # Does Configuration Work Directory Exist?
+    CONF="${CONTAINERDIR}/${IMAGE}"
+    if [ -d "${CONF}" ]; then # YES: Remove it
+      rm -rf "${CONF}"
+    fi
+
+    # Recreate Configuration Directory
+    mkdir -p "${CONF}"
+
+    # Copy Source Onfirguration to Container
+    cp -r "${SRC}/." "$CONF"
+  fi
+}
+
+start_processor_node() {
+  # PARAM $1 - Container Name
+  CONTAINER=$1
+
+  # Docker Image
+  IMAGE="ov-queue-processor"
+  VERSION="v0.0.2"
+  DOCKER_IMAGE="local/${IMAGE}:${VERSION}"
+
+  # Is Container Running?
+  status container "$CONTAINER"
+  if [[ $? == 0 ]]; then # NO
+    ## Start Mongo
+    echo "Running container '$CONTAINER'"
+
+    # Custom Configuration File
+    CONF="${CONTAINERDIR}/${IMAGE}/app.config.${MODE}.json"
+    MIXINS="${CONTAINERDIR}/${IMAGE}/mixins.${MODE}"
+    TEMPLATES="${CONTAINERDIR}/${IMAGE}/templates.${MODE}"
+
+    # Make Sure required networks exist
+    network_create 'net-ov-storage'
+
+    ## Initialize Docker Command
+    DOCKERCMD="docker run --rm --name ${CONTAINER}"
+#    DOCKERCMD="docker run"
+
+    # Set Server Configuration File
+    DOCKERCMD="${DOCKERCMD} -v ${MIXINS}:/app/mixins:ro"
+    DOCKERCMD="${DOCKERCMD} -v ${TEMPLATES}:/app/templates:ro"
+    DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/app.config.json:ro"
+
+    # Add Image Name
+    DOCKERCMD="${DOCKERCMD} -d ${DOCKER_IMAGE}"
+
+    # Execute the Command
+    echo $DOCKERCMD
+    $DOCKERCMD
 
     # Attach to Storage Backplane Network
     connect_container net-ov-storage "${CONTAINER}"
-  fi 
+  fi
 }
 
 ## Build Docker Image for Queue Email Sender (Node Version)
@@ -705,7 +817,7 @@ start_mailer_node() {
 
     # Attach to Storage Backplane Network
     connect_container net-ov-storage "${CONTAINER}"
-  fi 
+  fi
 }
 
 ## CONTAINERS: FRONT-END Servers ##
@@ -745,7 +857,7 @@ start_fe() {
     # Execute the Command
     echo $DOCKERCMD
     $DOCKERCMD
-  fi 
+  fi
 }
 
 ## Start All Application Containers (Depends on MODE)
@@ -764,7 +876,7 @@ start_all() {
   sleep 10
 
   # Start Queue Processors
-  start_mailer_node ov-mq-mailer &
+  start_processor_node ov-mq-processor &
 
   ## Start Backend Servers ##
   start_api ov-api-server &
@@ -790,7 +902,7 @@ stop_all() {
   # Wait for FrontEnd and API Server
   sleep 10
 
-  stop_container ov-mq-mailer &
+  stop_container ov-mq-processor &
 
   # Wait for Queue Processors
   sleep 10
@@ -819,7 +931,7 @@ build_all() {
   build_fe
 
   # Build RaabitMQ Mail Processor
-  build_mailer_node
+  build_processor_node
 }
 
 ## SHELL COMMAND: Start - On or More Application Containers
@@ -840,8 +952,8 @@ build() {
     mq)
       build_mq
       ;;
-    mailer)
-      build_mailer_node
+    processor)
+      build_processor_node
       ;;
     *)
       usage
@@ -862,16 +974,16 @@ start() {
       start_api ov-api-server
       ;;
     db)
-      start_db 
+      start_db
       ;;
     fe)
       start_fe ov-fe-server
       ;;
-    mailer)
-      start_mailer_node ov-mq-mailer
+    processor)
+      start_processor_node ov-mq-processor
       ;;
     mq)
-      start_mq 
+      start_mq
       ;;
     *)
       usage
@@ -897,11 +1009,11 @@ stop() {
     fe)
       stop_container ov-fe-server
       ;;
-    mailer)
-      stop_container ov-mq-mailer
+    processor)
+      stop_container ov-mq-processor
       ;;
     mq)
-      stop_mq 
+      stop_mq
       ;;
     *)
       usage
@@ -921,11 +1033,11 @@ log() {
     fe)
       logs_container ov-fe-server
       ;;
-    mailer)
-      logs_container ov-mq-mailer
+    processor)
+      logs_container ov-mq-processor
       ;;
     mq)
-      logs_rabbitmq 
+      logs_rabbitmq
       ;;
     *)
       usage
@@ -945,8 +1057,8 @@ shell() {
     fe)
       docker exec -it ov-fe-server /bin/ash
       ;;
-    mailer)
-      docker exec -it ov-mq-mailer /bin/ash
+    processor)
+      docker exec -it ov-mq-processor /bin/ash
       ;;
     *)
       usage
@@ -976,7 +1088,7 @@ mode() {
 ## Dsiplay Usage
 usage() {
   echo "Usage: $0 {start|stop}  [all|{container}] DEFAULT: all" >&2
-  echo "       $0 build         [all|api|fe|mailer] DEFAULT: all" >&2
+  echo "       $0 build         [all|api|fe|processor] DEFAULT: all" >&2
   echo "       $0 log           {container}" >&2
   echo "       $0 shell         {container}" >&2
   echo "       $0 networks      rm|create" >&2
@@ -1014,11 +1126,11 @@ case "$ACTION" in
   networks)
     if [[ $# < 2 ]]; then
       usage
-    fi 
+    fi
 
-    if [ "$2" == "create" ]; then 
+    if [ "$2" == "create" ]; then
       networks_create
-    elif [ "$2" == "rm" ]; then 
+    elif [ "$2" == "rm" ]; then
       networks_rm
     else
       usage
@@ -1030,7 +1142,7 @@ case "$ACTION" in
   log)
     if [[ $# < 2 ]]; then
       usage
-    fi 
+    fi
 
     log "$2"
     ;;
