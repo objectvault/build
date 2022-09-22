@@ -1,11 +1,10 @@
 # Directories
 ##############
-builds
-containers
 notes
 dumps
 tmp
 
 ## Runner Configuration Files
-sources/**/*.json
-sources/**/*.js
+builds
+containers
+sources
