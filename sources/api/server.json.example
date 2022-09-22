@@ -13,13 +13,14 @@
     }
   },
   "database": {
-    "shard-groups": [{
+    "shard-groups": [
+      {
         "shards": [{
           "range": [0, 0],
           "connection": {
             "database": "vault",
             "user": "root",
-            "password": null,
+            "password": "**PASSWORD**",
             "server": {
               "host": "ov-debug-db",
               "port": 3306
@@ -33,7 +34,7 @@
           "connection": {
             "database": "vault",
             "user": "root",
-            "password": null,
+            "password": "**PASSWORD**",
             "server": {
               "host": "ov-debug-db",
               "port": 3306
@@ -42,5 +43,18 @@
         }]
       }
     ]
+  },
+  "queues": {
+    "default": {
+      "servers":[{
+        "user": "**USER**",
+        "password": "**PASSWORD**",
+        "server": {
+          "host": "ov-debug-mq",
+          "port": 5672
+        },
+        "vhost": "objectvault"
+      }]
+    }
   }
 }
