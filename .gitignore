@@ -6,7 +6,6 @@ notes
 dumps
 tmp
 
-# Test Configuration Files (Contain Passwords)
-sources/**/server.*.json
-sources/**/mailer.*.json
-sources/**/app.config.*.json
+## Runner Configuration Files
+sources/**/*.json
+sources/**/*.js
