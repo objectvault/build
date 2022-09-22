@@ -1,0 +1,68 @@
+{
+  "paths": {
+    "mixins": "./mixins",
+    "templates": "./templates"
+  },
+  "nodemailer": {
+    "host": "smtp.mailtrap.io",
+    "port": 2525,
+    "secure": false,
+    "auth": {
+      "user": "**MAIL TRAP USER**",
+      "pass": "**PASSWORD**"
+    }
+  },
+  "broker": {
+    "vhosts": {
+      "objectvault": {
+        "connection": {
+          "hostname": "ov-debug-mq",
+          "user": "**PROCESSOR USER**",
+          "password": "**PASSWORD**"
+        },
+        "queues": {
+          "action:start": {
+            "check": true
+          },
+          "email:in": {
+            "check": true
+          },
+          "email:send": {
+            "check": true
+          },
+          "message:ok": {
+            "check": true
+          }
+        }
+      }
+    },
+    "publications": {
+      "email-in": {
+        "vhost": "objectvault",
+        "queue": "email:in"
+      },
+      "email-send": {
+        "vhost": "objectvault",
+        "queue": "email:send"
+      },
+      "message-ok": {
+        "vhost": "objectvault",
+        "queue": "message:ok"
+      }
+    },
+    "subscriptions": {
+      "action-start": {
+        "vhost": "objectvault",
+        "queue": "action:start"
+      },
+      "email-in": {
+        "vhost": "objectvault",
+        "queue": "email:in"
+      },
+      "email-send": {
+        "vhost": "objectvault",
+        "queue": "email:send"
+      }
+    }
+  }
+}
