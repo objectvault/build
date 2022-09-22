@@ -21,17 +21,9 @@ MODE=${MODE:-"debug"}
 ## GITHUB ObjectVault Project BASE URL
 GITHUB_OV_URL="https://github.com/objectvault"
 
-## IMAGE Sources
-APIIMAGESRC="https://github.com/objectvault/api-services.git"
-FEIMAGESRC="https://github.com/objectvault/frontend.git"
-QMAILERSRCGO="https://github.com/objectvault/queue-smtp-mailer.git"
-
 ## IMAGES
 RABBITMQ="rabbitmq:management-alpine"
 MARIADB="bitnami/mariadb:latest"
-APISERVER="local/ov-api-server"
-FESERVER="local/ov-fe-server"
-QMAILER="local/ov-mq-mailer"
 
 ## BUILD Directory
 BUILDDIR="${BASEDIR}/builds"
@@ -46,11 +38,6 @@ SOURCEDIR="${BASEDIR}/sources"
 NETWORKS="net-ov-storage"
 
 ## VOLUMES Directory
-
-# IMPORTANT - QNAP Firmware Updates will clear any paths outside /shares
-# this means that, any VOLUMES that are not created using docker volume create
-# will disappear a long with any data store in them (therefore any server that
-# requires a permanent store for it's state, i.e. database,needs to have a volume)
 
 # Volumes whose state is not managed by the server
 VOLUMESDIR="${BASEDIR}/volumes"
@@ -96,25 +83,6 @@ github_clone_release() {
   fi
   # ELSE: Failed to Clone Repository/Release
   return 1
-}
-
-stage_image_src() {
-  # PARAM $1 - Remote GIT repository
-  # PARAM $2 - Local GIT Repository Path
-
-  # PATH for Image SRC
-  IMAGEPATH="${BUILDDIR}/$2"
-
-  # Does SRC Path Exist?
-  if [ -d "${IMAGEPATH}" ]; then # YES: Update Image Src
-    cd "${IMAGEPATH}"
-    git config pull.rebase false
-    git pull
-    cd "${BASEDIR}"
-  else # NO: Clone Image SRC
-    mkdir -p "${IMAGEPATH}"
-    git clone "$1" "${IMAGEPATH}"
-  fi
 }
 
 build_docker_image() {
@@ -268,7 +236,7 @@ stop_container() {
   fi
 }
 
-## CONTAINERS: RabbitMQ ##
+## CONTAINER: RabbitMQ ##
 
 ## Initialize RabbitMQ Container
 build_rabbitmq() {
@@ -463,6 +431,8 @@ logs_rabbitmq() {
   esac
 }
 
+## CONTAINER: MariaDB Server ##
+
 ## Start Single Database Server
 start_db_server() {
   IMAGE=$1     # Docker Image Name
@@ -565,7 +535,7 @@ logs_db() {
   esac
 }
 
-## CONTAINERS: BACK-END Servers ##
+## CONTAINER: BACK-END API Server ##
 
 ## Build Docker Image for API Server
 build_api() {
@@ -628,67 +598,7 @@ start_api() {
   fi
 }
 
-## Build Docker Image for Queue Email Sender (GO Version)
-build_mailer_go() {
-  IMAGESRC="${QMAILERSRCGO}"
-  IMAGETAG="${QMAILER}"
-  BUILDDIR="mailer-go"
-
-  # Build Docker Image
-  stage_image_src "${IMAGESRC}" "${BUILDDIR}"
-  build_docker_image "${BUILDDIR}" "${IMAGETAG}"
-
-  # Does Configuration Directory Exist
-  SRC="${SOURCEDIR}/mailer-go"
-  CONF="${CONTAINERDIR}/mailer-go"
-  if [ -d "${CONF}" ]; then # YES: Remove it
-    rm -rf "${CONF}"
-  fi
-
-  # Recreate Configuration Directory
-  mkdir -p "${CONF}"
-
-  # Copy Source Configuration to Container
-  cp -r "${SRC}/." "$CONF"
-}
-
-start_mailer_go() {
-  # PARAM $1 - Container Name
-  IMAGE="${QMAILER}"
-  CONTAINER=$1
-
-  # Is Container Running?
-  status container "$CONTAINER"
-  if [[ $? == 0 ]]; then # NO
-    ## Start Mongo
-    echo "Running container '$CONTAINER'"
-
-    # Custom Configuration File
-    CONF="${CONTAINERDIR}/mailer-go/mailer.${MODE}.json"
-    TEMPLATES="${CONTAINERDIR}/mailer-go/templates.${MODE}"
-
-    # Make Sure required networks exist
-    network_create 'net-ov-storage'
-
-    ## Initialize Docker Command
-    DOCKERCMD="docker run --rm --name ${CONTAINER}"
-
-    ## Attach to Network
-    DOCKERCMD="docker run --rm --name ${CONTAINER}"
-    DOCKERCMD="${DOCKERCMD} -n net-ov-storage"
-
-    # Set Server Configuration File
-    DOCKERCMD="${DOCKERCMD} -v ${TEMPLATES}:/app/templates:ro"
-    DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/mailer.json:ro"
-
-    # Add Image Name
-    DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
-
-    # Execute the Command
-    echo $DOCKERCMD
-    $DOCKERCMD
-  fi
-}
+## CONTAINER: Node Queue Processor ##
 
 ## Build Docker Image for Queue Email Sender (Node Version)
 build_processor_node() {
@@ -764,71 +674,7 @@ start_processor_node() {
   fi
 }
 
-## Build Docker Image for Queue Email Sender (Node Version)
-build_mailer_node() {
-  IMAGESRC="${QMAILERSRCNODE}"
-  IMAGETAG="${QMAILER}"
-  BUILDDIR="mailer-node"
-
-  # Build Docker Image
-  stage_image_src "${IMAGESRC}" "${BUILDDIR}"
-  build_docker_image "${BUILDDIR}" "${IMAGETAG}"
-
-    # Does Configuration Directory Exist
-  SRC="${SOURCEDIR}/mailer-node"
-  CONF="${CONTAINERDIR}/mailer-node"
-  if [ -d "${CONF}" ]; then # YES: Remove it
-    rm -rf "${CONF}"
-  fi
-
-  # Recreate Configuration Directory
-  mkdir -p "${CONF}"
-
-  # Copy Source Onfirguration to Container
-  cp -r "${SRC}/." "$CONF"
-}
-
-start_mailer_node() {
-  # PARAM $1 - Container Name
-  IMAGE="${QMAILER}"
-  CONTAINER=$1
-
-  # Is Container Running?
-  status container "$CONTAINER"
-  if [[ $? == 0 ]]; then # NO
-    ## Start Mongo
-    echo "Running container '$CONTAINER'"
-
-    # Custom Configuration File
-    CONF="${CONTAINERDIR}/mailer-node/app.config.${MODE}.json"
-    MIXINS="${CONTAINERDIR}/mailer-node/mixins.${MODE}"
-    TEMPLATES="${CONTAINERDIR}/mailer-node/templates.${MODE}"
-
-    # Make Sure required networks exist
-    network_create 'net-ov-storage'
-
-    ## Initialize Docker Command
-    DOCKERCMD="docker run --rm --name ${CONTAINER}"
-#    DOCKERCMD="docker run"
-
-    # Set Server Configuration File
-    DOCKERCMD="${DOCKERCMD} -v ${MIXINS}:/app/mixins:ro"
-    DOCKERCMD="${DOCKERCMD} -v ${TEMPLATES}:/app/templates:ro"
-    DOCKERCMD="${DOCKERCMD} -v ${CONF}:/app/app.config.json:ro"
-
-    # Add Image Name
-    DOCKERCMD="${DOCKERCMD} -d ${IMAGE}"
-
-    # Execute the Command
-    echo $DOCKERCMD
-    $DOCKERCMD
-
-    # Attach to Storage Backplane Network
-    connect_container net-ov-storage "${CONTAINER}"
-  fi
-}
-
-## CONTAINERS: FRONT-END Servers ##
+## CONTAINER: FRONT-END Servers ##
 
 ## Build Docker Image for Frontend Web Server
 build_fe() {
@@ -1123,7 +969,7 @@ usage() {
   echo "       $0 mode" >&2
   echo >&2
   echo "Containers:"
-  echo "  db | mq | api | fe | mailer" >&2
+  echo "  db | mq | api | fe | processor" >&2
   echo >&2
   echo "MODES:" >&2
   echo "  debug  - Local Debugging" >&2
