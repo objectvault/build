@@ -61,8 +61,8 @@ start_processor_node() {
     MIXINS="${CONTAINERDIR}/${IMAGE}/mixins.${MODE}"
     TEMPLATES="${CONTAINERDIR}/${IMAGE}/templates.${MODE}"
 
-    # Make Sure required networks exist
-    network_create 'net-ov-storage'
+    # Make Sure Backend Network exists
+    network_create ${NET_BACKEND}
 
     ## Initialize Docker Command
     DOCKERCMD="docker run --rm --name ${CONTAINER}"
@@ -81,6 +81,6 @@ start_processor_node() {
     $DOCKERCMD
 
     # Attach to Storage Backplane Network
-    connect_container net-ov-storage "${CONTAINER}"
+    connect_container ${NET_BACKEND} "${CONTAINER}"
   fi
 }

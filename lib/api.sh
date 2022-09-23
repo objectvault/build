@@ -43,8 +43,8 @@ start_api() {
     # Custom Configuration File
     CONF="${CONTAINERDIR}/api/server.${MODE}.json"
 
-    # Make Sure required networks exist
-    network_create 'net-ov-storage'
+    # Make Sure Backend Network exists
+    network_create ${NET_BACKEND}
 
     ## Initialize Docker Command
     DOCKERCMD="docker run --rm"
@@ -68,6 +68,6 @@ start_api() {
     $DOCKERCMD
 
     # Attach to Storage Backplane Network
-    connect_container net-ov-storage "${CONTAINER}"
+    connect_container ${NET_BACKEND} "${CONTAINER}"
   fi
 }

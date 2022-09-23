@@ -43,8 +43,8 @@ start_fe() {
     # Custom Configuration File
     CONF="${CONTAINERDIR}/fe/config.${MODE}.js"
 
-    # Make Sure required networks exist
-    network_create 'net-ov-storage'
+    # Make Sure Backend Network exists
+    network_create ${NET_BACKEND}
 
     ## Initialize Docker Command
     DOCKERCMD="docker run --rm"
@@ -65,6 +65,6 @@ start_fe() {
     $DOCKERCMD
 
     # Attach to Storage Backplane Network
-    connect_container net-ov-storage "${CONTAINER}"
+    connect_container ${NET_BACKEND} "${CONTAINER}"
   fi
 }

@@ -68,15 +68,13 @@ network_create() {
   # Does Network Exists?
   status network "${NETWORK}"
   if [[ $? == 0 ]]; then # NO
-    # Set Network Options
-    case "${NETWORK}" in
-      net-ov-storage) # Internal Only Networks
-        ARGS="--internal ${NETWORK}"
-      ;;
-      *)
-        ARGS="${NETWORK}"
-      ;;
-    esac
+
+    if [ "${NETWORK}" -eq ${NET_BACKEND} ]; then
+      # Internal Only Networks
+      ARGS="--internal ${NETWORK}"
+    else # Normal Network
+      ARGS="${NETWORK}"
+    fi
 
     # Create
     echo "Creating Network '$NETWORK'"

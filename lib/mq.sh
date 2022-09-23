@@ -128,7 +128,7 @@ start_rabbitmq() {
     $DOCKERCMD
 
     # Attach to Storage Network
-    connect_container net-ov-storage "${CONTAINER}"
+    connect_container ${NET_BACKEND} "${CONTAINER}"
   fi
 }
 
@@ -157,8 +157,8 @@ build_mq() {
 start_mq() {
   IMAGE="${RABBITMQ}"
 
-  # Make Sure net-ov-storage network exists
-  network_create 'net-ov-storage'
+  # Make Sure Backend Network exists
+  network_create ${NET_BACKEND}
 
   # Options based on Mode
   case "$MODE" in
