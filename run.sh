@@ -266,6 +266,7 @@ start_rabbitmq() {
       echo "Need to build '${CONTAINER}' before 1st run"
       exit 1;
     fi
+    ENVFILE="${CONF}/.env"
 
     # Make Sure the Volume Exists
     volume_create "${CONTAINER}"
@@ -274,8 +275,11 @@ start_rabbitmq() {
     DOCKERCMD="docker run --rm --name ${CONTAINER}"
 #    DOCKERCMD="docker run"
 
-    # SET Environment File (Used to Initialize Administration User)
-    DOCKERCMD="${DOCKERCMD} --env-file ${CONF}/.env"
+    # Do we have an Environment File
+    if [ -f "${ENVFILE}" ]; then  # YES: Use it
+      # SET Environment File (Used to Initialize Administration User)
+      DOCKERCMD="${DOCKERCMD} --env-file ${ENVFILE}"
+    fi
 
     # SET Volumes
     DOCKERCMD="${DOCKERCMD} -v ${CONTAINER}:/var/lib/rabbitmq"
