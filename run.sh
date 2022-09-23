@@ -11,6 +11,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+## WORKING MODE [DEFAULT: debug]
+MODE=${MODE:-"debug"}
+
 ## User Configurable RUN Settings
 source ./settings.sh
 source ./lib/git.sh
@@ -40,7 +43,7 @@ start_all() {
   networks_create
 
   ## Start Data Servers ##
-  start_db &
+  db_start "${MODE}" &
   start_mq &
 
   # Delay 10 Seconds to Allow for Server Initialization
@@ -82,7 +85,7 @@ stop_all() {
   stop_mq &
 
   # Stop Data-Servers
-  stop_db  &
+  db_stop "${MODE}" &
 
   # Delay 10 Seconds to Allow for Complete Stop
   sleep 15
@@ -145,7 +148,7 @@ start() {
       start_api ov-api-server
       ;;
     db)
-      start_db
+      db_start "${MODE}"
       ;;
     fe)
       start_fe ov-fe-server
@@ -175,7 +178,7 @@ stop() {
       stop_container ov-api-server
       ;;
     db)
-      stop_db
+      db_stop "${MODE}"
       ;;
     fe)
       stop_container ov-fe-server
@@ -199,7 +202,7 @@ log() {
       logs_container ov-api-server
       ;;
     db)
-      logs_db
+      db_log "${MODE}"
       ;;
     fe)
       logs_container ov-fe-server
