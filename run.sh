@@ -1,53 +1,7 @@
 #!/bin/bash
 
-## Execution SYSTEM
-source /etc/os-release
-
-# Are we running the composer on a QNAP system?
-SYSTEM="linux"
-if [ $ID == "qts" ]; then # YES
-  SYSTEM="qnap"
-  echo "CURRENT SYSTEM - QNAP"
-else
-  echo "CURRENT SYSTEM - LINUX"
-fi
-
-## Base Script Directory
-export BASEDIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-
-## WORKING MODE [DEFAULT: debug]
-MODE=${MODE:-"debug"}
-
-## GITHUB ObjectVault Project BASE URL
-GITHUB_OV_URL="https://github.com/objectvault"
-
-## IMAGES
-RABBITMQ="rabbitmq:management-alpine"
-MARIADB="bitnami/mariadb:latest"
-
-## BUILD Directory
-BUILDDIR="${BASEDIR}/builds"
-
-## CONTAINERS Data Directory
-CONTAINERDIR="${BASEDIR}/containers"
-
-## CONTAINERS Source Configuration Directory
-SOURCEDIR="${BASEDIR}/sources"
-
-## NETWORKS
-NETWORKS="net-ov-storage"
-
-## VOLUMES Directory
-
-# Volumes whose state is not managed by the server
-VOLUMESDIR="${BASEDIR}/volumes"
-
-## CONF Directory
-CONFDIR="${BASEDIR}/conf/containers"
-CONFSRC="${BASEDIR}/conf/sources"
-
-## DOCKER CONTAINER Environment Properties
-MARIADB_ROOT_PASSWORD='rvKTk6xH8bDapzp6G5F9'
+## User Configurable RUN Settings
+source ./settings.sh
 
 ## Get URL for ObjectVault Repository for Specific Release
 github_clone_release() {
@@ -446,6 +400,7 @@ start_db_server() {
 
     # Custom Configuration File
     CONF="${CONTAINERDIR}/mariadb/${CONTAINER}.conf"
+    ENVFILE="${CONTAINERDIR}/mariadb/.env.${MODE}"
 
     # Create Container Volume
     volume_create "${CONTAINER}"
@@ -461,11 +416,9 @@ start_db_server() {
     # Expose Port so that we can attach from local system (Allows Access to DB)
     DOCKERCMD="${DOCKERCMD} -p 127.0.0.1:3306:3306"
 
-    # Is Debug?
-    if [ "${MODE}" == "debug" ]; then  # YES: Image OPTIONS
-      DOCKERCMD="${DOCKERCMD} -e ALLOW_EMPTY_PASSWORD=yes"
-    else # NO: Image OPTIONS
-      DOCKERCMD="${DOCKERCMD} -e MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}"
+    # Do we have an Environment File
+    if [ -f "${ENVFILE}" ]; then  # YES: Use it
+      DOCKERCMD="${DOCKERCMD} --env-file ${ENVFILE}"
     fi
 
     # Add Image Name
@@ -1031,8 +984,7 @@ case "$ACTION" in
     docker image ls
     ;;
   start)
-    echo "Volumes Directory       [${VOLUMESDIR}]"
-    echo "Configuration Directory [${CONFDIR}]"
+    echo "Containers Directory [${CONTAINERDIR}]"
 
     # Container : DEFAULT [all]
     CONTAINER=${2:-"all"}

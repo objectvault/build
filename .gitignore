@@ -3,9 +3,14 @@
 notes
 dumps
 tmp
-run.old.sh
 
-## Runner Configuration Files
+# Project ROOT Only
+####################
+/run.old.sh
+/settings.sh
+
+## Run Configuration paths
+###########################
 builds
 containers
 sources
