@@ -474,13 +474,6 @@ db_command() {
   # PARAM $2 - Action
   # PARAM $3, $4, $5- per action parameters
 
-  # Dump Database
-  arr=("$@")
-  for i in "${arr[@]}";
-  do
-    echo "$i"
-  done
-
   # Action to Execute
   case "$2" in
     start)
