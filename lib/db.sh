@@ -197,7 +197,7 @@ __parameter_db() {
 
 __parameter_dump() {
   # PARAM $1 - Database
-  local dump=${1:-"dump"}
+  local dump=${1:-"dump.sql"}
   echo $dump
 }
 
@@ -359,10 +359,10 @@ db_restore() {
 ## Display DB Gelp
 db_usage() {
   # PARAM $1 - Main Executable Script
-  echo "Usage: $1 mq [start|stop|log|shell]             {debug|single|dual}" >&2
-  echo "       $1 mq [init|dump]                        {debug|single|dual} {database}" >&2
-  echo "       $1 mq [restore]              [dump file] {debug|single|dual} {database}" >&2
-  echo "       $1 mq [help] " >&2
+  echo "Usage: $1 db [start|stop|log|shell]             {debug|single|dual}" >&2
+  echo "       $1 db [init|dump]                        {debug|single|dual} {database}" >&2
+  echo "       $1 db [restore]              [dump file] {debug|single|dual} {database}" >&2
+  echo "       $1 db [help] " >&2
   echo >&2
   echo "Action:"
   echo "  start   - Start Container" >&2
@@ -395,7 +395,7 @@ db_usage() {
 }
 
 ## Execute Container Command
-mq_command() {
+db_command() {
   # PARAM $1 - Main Executable Script
   # PARAM $2 - Action
   # PARAM $3, $4, $5- per action parameters

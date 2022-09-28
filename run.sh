@@ -358,6 +358,12 @@ case "$ACTION" in
   mode)
     ;;
   *)
-    usage
+    # Do we have an embedded command
+    COMMAND="${ACTION}_command"
+    if [[ $(type -t ${COMMAND}) == function ]]; then
+      $COMMAND $0 ${@:2}
+    else
+      usage
+    fi
     ;;
 esac
