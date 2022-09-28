@@ -22,7 +22,7 @@ DB_USER_PWD=
 
 # Recognized Actions and Modes
 ACTIONS=( "start" "stop" "log" "shell" "dump" "init" "restore" "help" )
-MODES=( "debug" "single" "dual" )
+MODES=(debug single dual)
 
 ## Start Single Database Server
 __db_start_server() {
@@ -107,7 +107,7 @@ __db_drop_database() {
   # Create SQL Command
   local sql=$(cat <<EOF
 DROP DATABASE IF EXISTS ${db};
-SHOW DATABASES;
+-- SHOW DATABASES;
 EOF
 )
 
@@ -126,7 +126,7 @@ CREATE DATABASE
   IF NOT EXISTS ${db}
   CHARACTER SET utf8
   COLLATE utf8_general_ci;
-SHOW DATABASES;
+-- SHOW DATABASES;
 EOF
 )
 
@@ -161,7 +161,7 @@ __db_dump_database() {
 __db_restore_database() {
   # PARAMETERS
   local container=$1 # Container
-  local db=$2        # Database to Dump
+  local db=$2        # Database to Restore
   local file=$3      # Relative File Name
 
   # Full DUMP File Name
@@ -170,7 +170,7 @@ __db_restore_database() {
   ## Initialize Docker Command
   DOCKERCMD="docker exec -i ${container} ${MYSQL} -u ${DB_USER}"
 
-  # Do we have a User PAssword Set?
+  # Do we have a User Password Set?
   if [ ! -z ${DB_USER_PWD} ]; then # YES: Add User Password
     DOCKERCMD="${DOCKERCMD} --password=\"${DB_USER_PWD}\""
   fi
@@ -183,9 +183,36 @@ __db_restore_database() {
   cat ${input} | $DOCKERCMD
 }
 
+__db_init_database() {
+  # PARAMETERS
+  local container=$1 # Container
+  local db=$2        # Database to Restore
+
+  # Initial Schema and Startup Data File
+  local schema="${DB_INITDIR}/schema.sql"
+  local startup="${DB_INITDIR}/startup-data.sql"
+
+  ## Initialize Docker Command
+  DOCKERCMD="docker exec -i ${container} ${MYSQL} -u ${DB_USER}"
+
+  # Do we have a User Password Set?
+  if [ ! -z ${DB_USER_PWD} ]; then # YES: Add User Password
+    DOCKERCMD="${DOCKERCMD} --password=\"${DB_USER_PWD}\""
+  fi
+
+  # Add Database Name to Dump
+  DOCKERCMD="${DOCKERCMD} ${db}"
+
+  # Execute the Command
+  echo "cat ${schema} | $DOCKERCMD"
+  cat ${schema} | $DOCKERCMD
+  echo "cat ${startup} | $DOCKERCMD"
+  cat ${startup} | $DOCKERCMD
+}
+
 __parameter_mode() {
   # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 $MODES "debug")
+  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
   echo $mode
 }
 
@@ -193,6 +220,30 @@ __parameter_db() {
   # PARAM $1 - Database
   local db=${1:-"vault"}
   echo $db
+}
+
+__parameter_mode_and_db() {
+  # PARAM $1 - MODE or Database
+  # PARAM $2 - Database
+
+  case "$#" in
+    0)
+      echo "$(__parameter_mode) $(__parameter_db)"
+    ;;
+    1)
+      # Is Parameter MODE?
+      in_list $1 "${MODES[@]}"
+      local index=$?
+      if [[ $index == 0 ]]; then # NO: Is Database
+        echo "$(__parameter_mode) $1"
+      else # YES: is Mode
+        echo "$1 $(__parameter_db)"
+      fi
+    ;;
+    *)
+      echo "$(__parameter_mode $1) $(__parameter_db $2)"
+    ;;
+  esac
 }
 
 __parameter_dump() {
@@ -296,11 +347,34 @@ db_shell() {
 db_init() {
   # PARAM $1 - MODE
   # PARAM $2 - DATABASE
-  echo "TODO: Implement"
 
   # Action Execution State
   echo "Working Mode    [$1]"
   echo "Initializing DB [$2]"
+
+  # Options based on Mode
+  case "$1" in
+    debug) # Debug DB Server
+      __db_drop_database    "ov-debug-db" "$2"
+      __db_create_database  "ov-debug-db" "$2"
+      __db_init_database    "ov-debug-db" "$2"
+      ;;
+    single) # NOT Debug: Single Shard Server
+      __db_drop_database    "ov-s1-db" "$2"
+      __db_create_database  "ov-s1-db" "$2"
+      __db_init_database    "ov-s1-db" "$2"
+      ;;
+    dual) # NOT Debug: Dual Shard Server
+      # Initialize SHARD 1
+      __db_drop_database    "ov-d1-db" "$2"
+      __db_create_database  "ov-d1-db" "$2"
+      __db_init_database    "ov-d1-db" "$2"
+      # Initialize SHARD 2
+      __db_drop_database    "ov-d2-db" "$2"
+      __db_create_database  "ov-d2-db" "$2"
+      __db_init_database    "ov-d2-db" "$2"
+      ;;
+  esac
 }
 
 ## Dump Database
@@ -386,11 +460,11 @@ db_usage() {
   echo >&2
   echo "Examples:" >&2
   echo >&2
-  echo "$1 mq start --- Start Container in [DEBUG] mode" >&2
-  echo "$1 mq stop single --- Stop Container in [SINGLE] mode" >&2
-  echo "$1 mq init vault2 --- Initialize database [vault2]" >&2
-  echo "$1 mq dump --- Dump default database [vault]" >&2
-  echo "$1 mq restore ov-debug-db-vault2-20220924-092700.hex.sql vault3 --- Restore dump to database [vault3]" >&2
+  echo "$1 db start --- Start Container in [DEBUG] mode" >&2
+  echo "$1 db stop single --- Stop Container in [SINGLE] mode" >&2
+  echo "$1 db init vault2 --- Initialize database [vault2]" >&2
+  echo "$1 db dump --- Dump default database [vault]" >&2
+  echo "$1 db restore ov-debug-db-vault2-20220924-092700.hex.sql vault3 --- Restore dump to database [vault3]" >&2
   exit 3
 }
 
@@ -399,6 +473,13 @@ db_command() {
   # PARAM $1 - Main Executable Script
   # PARAM $2 - Action
   # PARAM $3, $4, $5- per action parameters
+
+  # Dump Database
+  arr=("$@")
+  for i in "${arr[@]}";
+  do
+    echo "$i"
+  done
 
   # Action to Execute
   case "$2" in
@@ -430,22 +511,18 @@ db_command() {
       ;;
     init)
       # Initialize Database
-      local mode=$(__parameter_mode $3)
-      local db=$(__parameter_db $4)
-      db_init ${mode} ${db}
+      local params=$(__parameter_mode_and_db ${@:3})
+      db_init ${params}
       ;;
     dump)
-      # Dump Database
-      local mode=$(__parameter_mode $3)
-      local db=$(__parameter_db $4)
-      db_dump ${mode} ${db}
+      local params=$(__parameter_mode_and_db ${@:3})
+      db_dump ${params}
       ;;
     restore)
       # Restore Database
       local dump=$(__parameter_dump $3)
-      local mode=$(__parameter_mode $4)
-      local db=$(__parameter_db $5)
-      db_restore ${mode} ${db} ${dump}
+      local params=$(__parameter_mode_and_db ${@:4})
+      db_restore ${params} ${dump}
       ;;
     *)
       db_usage "$1"
