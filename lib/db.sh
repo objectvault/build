@@ -11,7 +11,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-## Imnport Utility Functions
+## Import Utility Functions
 source ./lib/utility.sh
 
 # Database Properties
@@ -21,11 +21,14 @@ DB_USER=root
 DB_USER_PWD=
 
 # Recognized Actions and Modes
-ACTIONS=( "start" "stop" "log" "shell" "dump" "init" "restore" "help" )
-MODES=(debug single dual)
+DB_ACTIONS=(start stop log shell dump init restore help)
+DB_MODES=(debug single dual)
 
-## Start Single Database Server
+## HELPERS ##
+
+## Start a Database Server
 __db_start_server() {
+  # INPUTS
   local image=$1     # Docker Image Name
   local container=$2 # Container Name
   local mode=$3      # Mode
@@ -33,10 +36,10 @@ __db_start_server() {
   # Is Container Running?
   status container "$container"
   if [[ $? == 0 ]]; then # NO
-    ## Start an Instance of MariaDB
+    ## Start Server
     echo "Running container '$container'"
 
-    # Custom Configuration File
+    # Configuration Files
     local conf="${CONTAINERDIR}/mariadb/${container}.conf"
     local envfile="${CONTAINERDIR}/mariadb/.env.${mode}"
 
@@ -154,7 +157,7 @@ __db_dump_database() {
   DOCKERCMD="${DOCKERCMD} ${db}"
 
   # Execute the Command
-  echo $DOCKERCMD
+  echo "$DOCKERCMD > ${output}"
   $DOCKERCMD > ${output}
 }
 
@@ -210,47 +213,49 @@ __db_init_database() {
   cat ${startup} | $DOCKERCMD
 }
 
-__parameter_mode() {
+__db_parameter_mode() {
   # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
+  local mode=$(in_list_or_default $1 "${DB_MODES[@]}" "debug")
   echo $mode
 }
 
-__parameter_db() {
+__db_parameter_db() {
   # PARAM $1 - Database
   local db=${1:-"vault"}
   echo $db
 }
 
-__parameter_mode_and_db() {
+__db_parameter_mode_and_db() {
   # PARAM $1 - MODE or Database
   # PARAM $2 - Database
 
   case "$#" in
     0)
-      echo "$(__parameter_mode) $(__parameter_db)"
+      echo "$(__db_parameter_mode) $(__db_parameter_db)"
     ;;
     1)
       # Is Parameter MODE?
-      in_list $1 "${MODES[@]}"
+      in_list $1 "${DB_MODES[@]}"
       local index=$?
       if [[ $index == 0 ]]; then # NO: Is Database
-        echo "$(__parameter_mode) $1"
+        echo "$(__db_parameter_mode) $1"
       else # YES: is Mode
-        echo "$1 $(__parameter_db)"
+        echo "$1 $(__db_parameter_db)"
       fi
     ;;
     *)
-      echo "$(__parameter_mode $1) $(__parameter_db $2)"
+      echo "$(__db_parameter_mode $1) $(__db_parameter_db $2)"
     ;;
   esac
 }
 
-__parameter_dump() {
+__db_parameter_dump() {
   # PARAM $1 - Database
   local dump=${1:-"dump.sql"}
   echo $dump
 }
+
+## COMMANDS ##
 
 ## Start All Database Servers (Depends on Mode)
 db_start() {
@@ -430,12 +435,12 @@ db_restore() {
   esac
 }
 
-## Display DB Gelp
+## Display DB Help
 db_usage() {
   # PARAM $1 - Main Executable Script
   echo "Usage: $1 db [start|stop|log|shell]             {debug|single|dual}" >&2
   echo "       $1 db [init|dump]                        {debug|single|dual} {database}" >&2
-  echo "       $1 db [restore]              [dump file] {debug|single|dual} {database}" >&2
+  echo "       $1 db [restore]              [dump_file] {debug|single|dual} {database}" >&2
   echo "       $1 db [help] " >&2
   echo >&2
   echo "Action:"
@@ -472,13 +477,13 @@ db_usage() {
 db_command() {
   # PARAM $1 - Main Executable Script
   # PARAM $2 - Action
-  # PARAM $3, $4, $5- per action parameters
+  # PARAM $3, $4, $5 - per action parameters
 
   # Action to Execute
   case "$2" in
     start)
       # Start Container(s)
-      local mode=$(__parameter_mode $3)
+      local mode=$(__db_parameter_mode $3)
       db_start ${mode}
 
       ## List Running Containers
@@ -486,7 +491,7 @@ db_command() {
       ;;
     stop)
       # Stop Container(s)
-      local mode=$(__parameter_mode $3)
+      local mode=$(__db_parameter_mode $3)
       db_stop ${mode}
 
       ## List Running Containers
@@ -494,27 +499,28 @@ db_command() {
       ;;
     log)
       # Display Container Logs
-      local mode=$(__parameter_mode $3)
+      local mode=$(__db_parameter_mode $3)
       db_log ${mode}
       ;;
     shell)
       # Execute a Shell in a Container
-      local mode=$(__parameter_mode $3)
+      local mode=$(__db_parameter_mode $3)
       db_shell ${mode}
       ;;
     init)
       # Initialize Database
-      local params=$(__parameter_mode_and_db ${@:3})
+      local params=$(__db_parameter_mode_and_db ${@:3})
       db_init ${params}
       ;;
     dump)
-      local params=$(__parameter_mode_and_db ${@:3})
+      # Dump Database
+      local params=$(__db_parameter_mode_and_db ${@:3})
       db_dump ${params}
       ;;
     restore)
       # Restore Database
-      local dump=$(__parameter_dump $3)
-      local params=$(__parameter_mode_and_db ${@:4})
+      local dump=$(__db_parameter_dump $3)
+      local params=$(__db_parameter_mode_and_db ${@:4})
       db_restore ${params} ${dump}
       ;;
     *)
