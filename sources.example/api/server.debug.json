@@ -21,7 +21,7 @@
             "user": "**DB-USER**",
             "password": "**PASSWORD**",
             "server": {
-              "host": "ov-debug-db",
+              "host": "ov-db-debug",
               "port": 3306
             }
           }
@@ -35,7 +35,7 @@
             "user": "**DB-USER**",
             "password": "**PASSWORD**",
             "server": {
-              "host": "ov-debug-db",
+              "host": "ov-db-debug",
               "port": 3306
             }
           }
@@ -49,7 +49,7 @@
         "user": "**API-QUEUE-USER**",
         "password": "**PASSWORD**",
         "server": {
-          "host": "ov-debug-mq",
+          "host": "ov-db-debug",
           "port": 5672
         },
         "vhost": "objectvault"

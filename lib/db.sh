@@ -212,12 +212,6 @@ __db_init_database() {
   cat ${startup} | $DOCKERCMD
 }
 
-__db_parameter_mode() {
-  # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
-  echo $mode
-}
-
 __db_parameter_db() {
   # PARAM $1 - Database
   local db=${1:-"vault"}
@@ -230,20 +224,20 @@ __db_parameter_mode_and_db() {
 
   case "$#" in
     0)
-      echo "$(__db_parameter_mode) $(__db_parameter_db)"
+      echo "$(parameter_mode) $(__db_parameter_db)"
     ;;
     1)
       # Is Parameter MODE?
       in_list $1 "${MODES[@]}"
       local index=$?
       if [[ $index == 0 ]]; then # NO: Is Database
-        echo "$(__db_parameter_mode) $1"
+        echo "$(parameter_mode) $1"
       else # YES: is Mode
         echo "$1 $(__db_parameter_db)"
       fi
     ;;
     *)
-      echo "$(__db_parameter_mode $1) $(__db_parameter_db $2)"
+      echo "$(parameter_mode $1) $(__db_parameter_db $2)"
     ;;
   esac
 }
@@ -271,14 +265,14 @@ db_start() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      __db_start_server $image "ov-debug-db" $1
+      __db_start_server $image "ov-db-debug" $1
       ;;
     single) # NOT Debug: Single Shard Server
-      __db_start_server $image "ov-s1-db" $1
+      __db_start_server $image "ov-db-s1" $1
       ;;
     cluster) # NOT Debug: Dual Shard Server
-      __db_start_server $image "ov-d1-db" $1
-      __db_start_server $image "ov-d2-db" $1
+      __db_start_server $image "ov-db-d1"$1
+      __db_start_server $image "ov-db-d2" $1
       ;;
   esac
 }
@@ -293,14 +287,14 @@ db_stop() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      stop_container "ov-debug-db"
+      stop_container "ov-db-debug"
       ;;
     single) # NOT Debug: Single Shard Server
-      stop_container "ov-s1-db"
+      stop_container "ov-db-s1"
       ;;
     cluster) # NOT Debug: Dual Shard Server
-      stop_container "ov-d1-db" &
-      stop_container "ov-d2-db" &
+      stop_container "ov-db-d1"&
+      stop_container "ov-db-d2" &
       ;;
   esac
 }
@@ -315,10 +309,10 @@ db_log() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      logs_container "ov-debug-db"
+      logs_container "ov-db-debug"
       ;;
     single) # NOT Debug: Single Shard Server
-      logs_container "ov-s1-db"
+      logs_container "ov-db-s1"
       ;;
     cluster) # NOT Debug: Dual Shard Server
       echo "Can't Log more than one server"
@@ -336,10 +330,10 @@ db_shell() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      docker exec -it "ov-debug-db" /bin/bash
+      docker exec -it "ov-db-debug" /bin/bash
       ;;
     single) # NOT Debug: Single Shard Server
-      docker exec -it "ov-s1-db" /bin/bash
+      docker exec -it "ov-db-s1" /bin/bash
       ;;
     cluster) # NOT Debug: Dual Shard Server
       echo "Can't Attach to more than one server"
@@ -359,24 +353,24 @@ db_init() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      __db_drop_database    "ov-debug-db" "$2"
-      __db_create_database  "ov-debug-db" "$2"
-      __db_init_database    "ov-debug-db" "$2"
+      __db_drop_database    "ov-db-debug" "$2"
+      __db_create_database  "ov-db-debug" "$2"
+      __db_init_database    "ov-db-debug" "$2"
       ;;
     single) # NOT Debug: Single Shard Server
-      __db_drop_database    "ov-s1-db" "$2"
-      __db_create_database  "ov-s1-db" "$2"
-      __db_init_database    "ov-s1-db" "$2"
+      __db_drop_database    "ov-db-s1" "$2"
+      __db_create_database  "ov-db-s1" "$2"
+      __db_init_database    "ov-db-s1" "$2"
       ;;
     cluster) # NOT Debug: Dual Shard Server
       # Initialize SHARD 1
-      __db_drop_database    "ov-d1-db" "$2"
-      __db_create_database  "ov-d1-db" "$2"
-      __db_init_database    "ov-d1-db" "$2"
+      __db_drop_database    "ov-db-d1""$2"
+      __db_create_database  "ov-db-d1""$2"
+      __db_init_database    "ov-db-d1""$2"
       # Initialize SHARD 2
-      __db_drop_database    "ov-d2-db" "$2"
-      __db_create_database  "ov-d2-db" "$2"
-      __db_init_database    "ov-d2-db" "$2"
+      __db_drop_database    "ov-db-d2" "$2"
+      __db_create_database  "ov-db-d2" "$2"
+      __db_init_database    "ov-db-d2" "$2"
       ;;
   esac
 }
@@ -393,14 +387,14 @@ db_export() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      __db_dump_database "ov-debug-db" "$2"
+      __db_dump_database "ov-db-debug" "$2"
       ;;
     single) # NOT Debug: Single Shard Server
-      __db_dump_database "ov-s1-db" "$2"
+      __db_dump_database "ov-db-s1" "$2"
       ;;
     cluster) # NOT Debug: Dual Shard Server
-      __db_dump_database "ov-d1-db" "$2"
-      __db_dump_database "ov-d2-db" "$2"
+      __db_dump_database "ov-db-d1""$2"
+      __db_dump_database "ov-db-d2" "$2"
       ;;
   esac
 }
@@ -419,14 +413,14 @@ db_restore() {
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
-      __db_drop_database    "ov-debug-db" "$2"
-      __db_create_database  "ov-debug-db" "$2"
-      __db_restore_database "ov-debug-db" "$2" "$3"
+      __db_drop_database    "ov-db-debug" "$2"
+      __db_create_database  "ov-db-debug" "$2"
+      __db_restore_database "ov-db-debug" "$2" "$3"
       ;;
     single) # NOT Debug: Single Shard Server
-      __db_drop_database    "ov-s1-db" "$2"
-      __db_create_database  "ov-s1-db" "$2"
-      __db_restore_database "ov-s1-db" "$2" "$3"
+      __db_drop_database    "ov-db-s1" "$2"
+      __db_create_database  "ov-db-s1" "$2"
+      __db_restore_database "ov-db-s1" "$2" "$3"
       ;;
     cluster) # NOT Debug: Dual Shard Server
       echo "Can't Restore Dump to more than one server"
@@ -482,7 +476,7 @@ db_command() {
   case "$2" in
     start)
       # Start Container(s)
-      local mode=$(__db_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       db_start ${mode}
 
       ## List Running Containers
@@ -490,7 +484,7 @@ db_command() {
       ;;
     stop)
       # Stop Container(s)
-      local mode=$(__db_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       db_stop ${mode}
 
       ## List Running Containers
@@ -498,12 +492,12 @@ db_command() {
       ;;
     log)
       # Display Container Logs
-      local mode=$(__db_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       db_log ${mode}
       ;;
     shell)
       # Execute a Shell in a Container
-      local mode=$(__db_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       db_shell ${mode}
       ;;
     init)

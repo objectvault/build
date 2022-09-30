@@ -19,13 +19,6 @@ MQ_ACTIONS=(start stop log shell init)
 RABBITMQCTL=/opt/rabbitmq/sbin/rabbitmqctl
 
 ## HELPERS ##
-
-__mq_parameter_mode() {
-  # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
-  echo $mode
-}
-
 __mq_parameter_file() {
   # PARAM $1 - File Name
   local file=${1:-"export"}
@@ -217,13 +210,14 @@ mq_start() {
   # Options based on Mode
   case "$MODE" in
     debug) # RabbitMQ: Debug Server
-      __mq_start_server $image "ov-debug-mq" $1
+      __mq_start_server $image "ov-mq-debug" $1
       ;;
     single) # RabbitMQ: Single Server
-      __mq_start_server $image "ov-s1-mq" $1
+      __mq_start_server $image "ov-mq-s1" $1
       ;;
     cluster) # RabbitMQ: Server Cluster
-      echo "TODO: Implement"
+      __mq_start_server $image "ov-mq-c1" $1
+      __mq_start_server $image "ov-mq-c2" $1
       ;;
   esac
 }
@@ -238,13 +232,14 @@ mq_stop() {
   # Options based on Mode
   case "$MODE" in
     debug) # RabbitMQ: Debug Server
-      stop_container "ov-debug-mq"
+      stop_container "ov-mq-debug"
       ;;
     single) # RabbitMQ: Single Production Server
-      stop_container "ov-s1-mq"
+      stop_container "ov-mq-s1"
       ;;
-    cluster) # RabbitMQ: Cluster
-      echo "TODO: Implement"
+    cluster) # RabbitMQ: Cluster (Reverse Start Order)
+      stop_container "ov-mq-c2"
+      stop_container "ov-mq-c1"
       ;;
   esac
 }
@@ -259,10 +254,10 @@ mq_log() {
   # Options based on Mode
   case "$MODE" in
     debug) # RabbitMQ: Debug Server
-      logs_container "ov-debug-mq"
+      logs_container "ov-mq-debug"
       ;;
     single) # RabbitMQ: Single Production Server
-      logs_container "ov-s1-mq"
+      logs_container "ov-mq-s1"
       ;;
     cluster) # RabbitMQ: Cluster
       echo "Can't Log more than one server"
@@ -280,10 +275,10 @@ mq_shell() {
   # Options based on Mode
   case "$1" in
     debug) # RabbitMQ: Debug Server
-      docker exec -it "ov-debug-mq" /bin/ash
+      docker exec -it "ov-mq-debug" /bin/ash
       ;;
     single) # RabbitMQ: Single Production Server
-      docker exec -it "ov-s1-mq" /bin/ash
+      docker exec -it "ov-mq-s1" /bin/ash
       ;;
     cluster) # RabbitMQ: Cluster
       echo "Can't Attach to more than one server"
@@ -302,14 +297,14 @@ mq_init() {
   # Options based on Mode
   case "$1" in
     debug) # RabbitMQ: Debug Server
-      __mq_init_server $image "ov-debug-mq"
+      __mq_init_server $image "ov-mq-debug"
       ;;
     single) # RabbitMQ: Single Production Server
-      __mq_init_server $image "ov-s1-mq"
+      __mq_init_server $image "ov-mq-s1"
       ;;
     cluster) # RabbitMQ: Cluster
-      __mq_init_server $image "ov-d1-mq"
-      __mq_init_server $image "ov-d2-mq"
+      __mq_init_server $image "ov-mq-c1"
+      __mq_init_server $image "ov-mq-c2"
       ;;
   esac
 }
@@ -324,14 +319,14 @@ mq_export() {
   # Options based on Mode
   case "$1" in
     debug) # RabbitMQ: Debug Server
-      __mq_export "ov-debug-mq"
+      __mq_export "ov-mq-debug"
       ;;
     single) # RabbitMQ: Single Production Server
-      __mq_export "ov-s1-mq"
+      __mq_export "ov-mq-s1"
       ;;
     cluster) # RabbitMQ: Cluster
-      __mq_export "ov-d1-mq"
-      __mq_export "ov-d2-mq"
+      __mq_export "ov-mq-c1"
+      __mq_export "ov-mq-c2"
       ;;
   esac
 }
@@ -347,14 +342,13 @@ mq_import() {
   # Options based on Mode
   case "$1" in
     debug) # RabbitMQ: Debug Server
-      __mq_import "ov-debug-mq" "$2"
+      __mq_import "ov-mq-debug" "$2"
       ;;
     single) # RabbitMQ: Single Production Server
-      __mq_import "ov-s1-mq" "$2"
+      __mq_import "ov-mq-s1" "$2"
       ;;
     cluster) # RabbitMQ: Cluster
-      __mq_import "ov-d1-mq" "$2"
-      __mq_import "ov-d2-mq" "$2"
+      echo "Can't Import to more than one server"
       ;;
   esac
 }
@@ -403,7 +397,7 @@ mq_command() {
   case "$2" in
     start)
       # Start Container(s)
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       mq_start ${mode}
 
       ## List Running Containers
@@ -411,7 +405,7 @@ mq_command() {
       ;;
     stop)
       # Stop Container(s)
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       mq_stop ${mode}
 
       ## List Running Containers
@@ -419,28 +413,28 @@ mq_command() {
       ;;
     log)
       # Display Container Logs
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       mq_log ${mode}
       ;;
     shell)
       # Execute a Shell in a Container
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       mq_shell ${mode}
       ;;
     init)
       # Initialize Container(s)
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       mq_init ${mode}
       ;;
     export)
       # Export Server Configuration
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       mq_export ${mode}
       ;;
     import)
       # Import Server Configuration
       local file=$(__mq_parameter_file $3)
-      local mode=$(__mq_parameter_mode $4)
+      local mode=$(parameter_mode $4)
       mq_import ${mode} ${file}
       ;;
     *)

@@ -70,3 +70,10 @@ in_list_or_default() {
     echo ${params[@]:$index:1}
   fi
 }
+
+# Extract Mode or Default to "debug"
+parameter_mode() {
+  # PARAM $1 - MODE
+  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
+  echo $mode
+}
