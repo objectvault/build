@@ -39,19 +39,19 @@ all_start() {
   mq_command $1 start $2 &
 
   # Delay 10 Seconds to Allow for Server Initialization
-  #sleep 10
+  sleep 10
 
   # Start Queue Processors
   #start_processor_node ov-mq-processor &
 
   ## Start Backend Servers ##
-  #start_api ov-api-server &
+  api_command $1 start $2 &
 
   # Delay 10 Seconds to Allow for Server Initialization
-  #sleep 5
+  sleep 5
 
   ## Start Frontend Server
-  #start_fe ov-fe-server
+  fe_command $1 start $2
 }
 
 ## Stop All Application Containers (Depends on MODE)
@@ -63,13 +63,13 @@ all_stop() {
   echo "Stopping Running Servers"
 
   # Stop Front-End Server
-  #stop_container ov-fe-server &
+  fe_command $1 stop $2 &
 
   # Stop Back-End Server
-  #stop_container ov-api-server &
+  api_command $1 stop $2 &
 
   # Wait for FrontEnd and API Server
-  #sleep 10
+  sleep 10
 
   #stop_container ov-mq-processor &
 
@@ -89,7 +89,7 @@ all_stop() {
   networks_rm
 }
 
-## Display Message Queue Help
+## Display ALL Help
 all_usage() {
   # PARAM $1 - Main Executable Script
   echo "Usage: $1 all [start|stop|build|init|export] {debug|single|cluster}" >&2
@@ -116,7 +116,7 @@ all_usage() {
   exit 3
 }
 
-## Execute Container Command
+## Execute ALL Command
 all_command() {
   # PARAM $1 - Main Executable Script
   # PARAM $2 - Action
@@ -126,7 +126,7 @@ all_command() {
   case "$2" in
     start)
       # Start Container(s)
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       all_start $1 ${mode}
 
       ## List Running Containers
@@ -134,7 +134,7 @@ all_command() {
       ;;
     stop)
       # Stop Container(s)
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       all_stop $1 ${mode}
 
       ## List Running Containers
@@ -142,17 +142,17 @@ all_command() {
       ;;
     build)
       # Display Container Logs
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       all_log $1 ${mode}
       ;;
     init)
       # Execute a Shell in a Container
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       all_init $1 ${mode}
       ;;
     export)
       # Export Server Configuration
-      local mode=$(__mq_parameter_mode $3)
+      local mode=$(parameter_mode $3)
       all_export $1 ${mode}
       ;;
     *)
