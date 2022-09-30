@@ -11,9 +11,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-## Import Utility Functions
-source ./lib/utility.sh
-
 # RabbitMQ Properties
 MQ_ACTIONS=(start stop log shell init)
 RABBITMQCTL=/opt/rabbitmq/sbin/rabbitmqctl

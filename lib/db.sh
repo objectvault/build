@@ -11,9 +11,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-## Import Utility Functions
-source ./lib/utility.sh
-
 # Database Properties
 MYSQL=/opt/bitnami/mariadb/bin/mysql
 MYSQLDUMP=/opt/bitnami/mariadb/bin/mysqldump
