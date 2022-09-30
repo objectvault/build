@@ -16,14 +16,13 @@ source ./lib/utility.sh
 
 # RabbitMQ Properties
 MQ_ACTIONS=(start stop log shell init)
-MQ_MODES=(debug single cluster)
 RABBITMQCTL=/opt/rabbitmq/sbin/rabbitmqctl
 
 ## HELPERS ##
 
 __mq_parameter_mode() {
   # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 "${MQ_MODES[@]}" "debug")
+  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
   echo $mode
 }
 
@@ -389,8 +388,8 @@ mq_usage() {
   echo >&2
   echo "$1 mq start       --- Start Container in [DEBUG] mode" >&2
   echo "$1 mq stop single --- Stop Container in [SINGLE] mode" >&2
-  echo "$1 db export      --- Export server configuration in [DEBUG] mode" >&2
-  echo "$1 db import ov-debug-mq-export-20220929-125223.json --- Import server configuration in [DEBUG] mode" >&2
+  echo "$1 mq export      --- Export server configuration in [DEBUG] mode" >&2
+  echo "$1 mq import ov-debug-mq-export-20220929-125223.json --- Import server configuration in [DEBUG] mode" >&2
   exit 3
 }
 

@@ -22,7 +22,6 @@ DB_USER_PWD=
 
 # Recognized Actions and Modes
 DB_ACTIONS=(start stop log shell dump init restore help)
-DB_MODES=(debug single dual)
 
 ## HELPERS ##
 
@@ -215,7 +214,7 @@ __db_init_database() {
 
 __db_parameter_mode() {
   # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 "${DB_MODES[@]}" "debug")
+  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
   echo $mode
 }
 
@@ -235,7 +234,7 @@ __db_parameter_mode_and_db() {
     ;;
     1)
       # Is Parameter MODE?
-      in_list $1 "${DB_MODES[@]}"
+      in_list $1 "${MODES[@]}"
       local index=$?
       if [[ $index == 0 ]]; then # NO: Is Database
         echo "$(__db_parameter_mode) $1"
@@ -277,7 +276,7 @@ db_start() {
     single) # NOT Debug: Single Shard Server
       __db_start_server $image "ov-s1-db" $1
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       __db_start_server $image "ov-d1-db" $1
       __db_start_server $image "ov-d2-db" $1
       ;;
@@ -299,7 +298,7 @@ db_stop() {
     single) # NOT Debug: Single Shard Server
       stop_container "ov-s1-db"
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       stop_container "ov-d1-db" &
       stop_container "ov-d2-db" &
       ;;
@@ -321,7 +320,7 @@ db_log() {
     single) # NOT Debug: Single Shard Server
       logs_container "ov-s1-db"
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       echo "Can't Log more than one server"
       ;;
   esac
@@ -342,7 +341,7 @@ db_shell() {
     single) # NOT Debug: Single Shard Server
       docker exec -it "ov-s1-db" /bin/bash
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       echo "Can't Attach to more than one server"
       ;;
   esac
@@ -369,7 +368,7 @@ db_init() {
       __db_create_database  "ov-s1-db" "$2"
       __db_init_database    "ov-s1-db" "$2"
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       # Initialize SHARD 1
       __db_drop_database    "ov-d1-db" "$2"
       __db_create_database  "ov-d1-db" "$2"
@@ -383,7 +382,7 @@ db_init() {
 }
 
 ## Dump Database
-db_dump() {
+db_export() {
   # PARAM $1 - MODE
   # PARAM $2 - DATABASE
 
@@ -399,7 +398,7 @@ db_dump() {
     single) # NOT Debug: Single Shard Server
       __db_dump_database "ov-s1-db" "$2"
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       __db_dump_database "ov-d1-db" "$2"
       __db_dump_database "ov-d2-db" "$2"
       ;;
@@ -429,7 +428,7 @@ db_restore() {
       __db_create_database  "ov-s1-db" "$2"
       __db_restore_database "ov-s1-db" "$2" "$3"
       ;;
-    dual) # NOT Debug: Dual Shard Server
+    cluster) # NOT Debug: Dual Shard Server
       echo "Can't Restore Dump to more than one server"
       ;;
   esac
@@ -439,7 +438,7 @@ db_restore() {
 db_usage() {
   # PARAM $1 - Main Executable Script
   echo "Usage: $1 db [start|stop|log|shell]             {debug|single|dual}" >&2
-  echo "       $1 db [init|dump]                        {debug|single|dual} {database}" >&2
+  echo "       $1 db [init|export]                      {debug|single|dual} {database}" >&2
   echo "       $1 db [restore]              [dump_file] {debug|single|dual} {database}" >&2
   echo "       $1 db [help] " >&2
   echo >&2
@@ -459,16 +458,16 @@ db_usage() {
   echo "              File name only. Path is relative to \"dump\" path"
   echo >&2
   echo "Possible MODES:"
-  echo "  debug  - Local Debug Model [DEFAULT]"
-  echo "  single - Single shard Mode"
-  echo "  dual   - Dual shard Mode"
+  echo "  debug   - Local Debug Model [DEFAULT]"
+  echo "  single  - Single shard Mode"
+  echo "  cluster - Dual shard Mode"
   echo >&2
   echo "Examples:" >&2
   echo >&2
   echo "$1 db start --- Start Container in [DEBUG] mode" >&2
   echo "$1 db stop single --- Stop Container in [SINGLE] mode" >&2
   echo "$1 db init vault2 --- Initialize database [vault2]" >&2
-  echo "$1 db dump --- Dump default database [vault]" >&2
+  echo "$1 db export --- Dump default database [vault]" >&2
   echo "$1 db restore ov-debug-db-vault2-20220924-092700.hex.sql vault3 --- Restore dump to database [vault3]" >&2
   exit 3
 }
@@ -512,10 +511,10 @@ db_command() {
       local params=$(__db_parameter_mode_and_db ${@:3})
       db_init ${params}
       ;;
-    dump)
+    export)
       # Dump Database
       local params=$(__db_parameter_mode_and_db ${@:3})
-      db_dump ${params}
+      db_export ${params}
       ;;
     restore)
       # Restore Database

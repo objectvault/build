@@ -12,18 +12,13 @@
 #
 
 ## WORKING MODE [DEFAULT: debug]
+MODES=(debug single cluster)
 MODE=${MODE:-"debug"}
 
 ## User Configurable RUN Settings
 source ./settings.sh
 source ./lib/git.sh
 source ./lib/docker.sh
-
-## CONTAINER: MariaDB Server ##
-source ./lib/db.sh
-
-## CONTAINER: RabbitMQ ##
-source ./lib/mq.sh
 
 ## CONTAINER: Node Queue Processor ##
 source ./lib/processor.sh
@@ -360,6 +355,11 @@ case "$ACTION" in
   *)
     # Do we have an embedded command
     COMMAND="${ACTION}_command"
+
+    ## Include Command Source
+    source ./lib/${ACTION}.sh
+
+    echo $COMMAND
     if [[ $(type -t ${COMMAND}) == function ]]; then
       $COMMAND $0 ${@:2}
     else
