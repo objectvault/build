@@ -16,7 +16,7 @@
     "vhosts": {
       "objectvault": {
         "connection": {
-          "hostname": "ov-debug-mq",
+          "hostname": "ov-mq-debug",
           "user": "**PROCESSOR USER**",
           "password": "**PASSWORD**"
         },
