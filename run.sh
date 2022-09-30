@@ -17,6 +17,9 @@ MODE=${MODE:-"debug"}
 
 ## User Configurable RUN Settings
 source ./settings.sh
+
+## Helper Function
+source ./lib/utility.sh
 source ./lib/git.sh
 source ./lib/docker.sh
 
