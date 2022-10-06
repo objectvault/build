@@ -111,11 +111,31 @@ all_build() {
 
 ## Initialize All Containers
 all_init() {
-  echo "TODO: Implement"
+  # Initialize/Reset Databases
+  db_command $1 init $2
+
+  # Initialize/Reset RabbitMQ Server(s)
+  mq_command $1 init $2
+
+  # Initialize/Reset API Server Container(s)
+  api_command $1 init $2
+
+  # Initialize/Reset Frontend Container(s)
+  fe_command $1 init $2
+
+  # Initialize/Reset Queue Processor Container(s)
+  qp_command $1 init $2
 }
 
 ## Export All Containers Data/State
 all_export() {
+
+  # Export Databases
+  db_command $1 "export" $2
+
+  # Export RabbitMQ Server(s) Configuration
+  mq_command $1 "export" $2
+
   echo "TODO: Implement"
 }
 
