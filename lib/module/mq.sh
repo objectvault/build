@@ -93,6 +93,7 @@ __mq_init_server() {
   # INPUTS
   local image=$1     # Docker Image Name
   local container=$2 # Container Name
+  local mode=$3      # Mode
 
   echo "INITIALIZE Container '$container'"
 
@@ -124,7 +125,6 @@ __mq_init_server() {
   cp -r "${src}/." "${conf}"
 
   ## STEP 4 : Initialize Container
-
   ## Initialize Docker Command
   local DOCKERCMD="docker run --rm --name ${container}"
 
@@ -143,6 +143,28 @@ __mq_init_server() {
   DOCKERCMD="${DOCKERCMD} -d ${image}"
 
   # Execute the Command
+  echo $DOCKERCMD
+  $DOCKERCMD
+
+  # Wait for Container to Stabilize and then stop
+  sleep 10
+  stop_container ${container}
+
+  ## STEP 5 : Restart Container normally
+  __mq_start_server ${@:1}
+  sleep 5
+
+  ## STEP 6: Load Initial Configuration for RabbitMQ
+  # Full EXPORT File Name
+  local input=${conf}/initialize.json # Input File Name
+
+  ## Copy File into Container
+  local DOCKERCMD="docker cp ${input} ${container}:/tmp/import.json"
+  echo $DOCKERCMD
+  $DOCKERCMD
+
+  ## STEP 7 : Import Definitions into Server
+  DOCKERCMD="docker exec ${container} ${RABBITMQCTL} import_definitions /tmp/import.json"
   echo $DOCKERCMD
   $DOCKERCMD
 
@@ -294,14 +316,14 @@ mq_init() {
   # Options based on Mode
   case "$1" in
     debug) # RabbitMQ: Debug Server
-      __mq_init_server $image "ov-mq-debug"
+      __mq_init_server $image "ov-mq-debug" $1
       ;;
     single) # RabbitMQ: Single Production Server
-      __mq_init_server $image "ov-mq-s1"
+      __mq_init_server $image "ov-mq-s1" $1
       ;;
     cluster) # RabbitMQ: Cluster
-      __mq_init_server $image "ov-mq-c1"
-      __mq_init_server $image "ov-mq-c2"
+      __mq_init_server $image "ov-mq-c1" $1
+      __mq_init_server $image "ov-mq-c2" $1
       ;;
   esac
 }
