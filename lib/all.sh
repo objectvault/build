@@ -18,7 +18,7 @@ source ./lib/db.sh
 source ./lib/mq.sh
 
 ## CONTAINER: Node Queue Processor ##
-source ./lib/processor.sh
+source ./lib/qp.sh
 
 ## CONTAINER: BACK-END API Server ##
 source ./lib/api.sh
@@ -42,12 +42,15 @@ all_start() {
   sleep 10
 
   # Start Queue Processors
-  #start_processor_node ov-mq-processor &
+  qp_command $1 start $2
+
+  # Delay 5 Seconds to Allow for Server Initialization
+  sleep 5
 
   ## Start Backend Servers ##
-  api_command $1 start $2 &
+  api_command $1 start $2
 
-  # Delay 10 Seconds to Allow for Server Initialization
+  # Delay 5 Seconds to Allow for Server Initialization
   sleep 5
 
   ## Start Frontend Server
@@ -71,10 +74,10 @@ all_stop() {
   # Wait for FrontEnd and API Server
   sleep 10
 
-  #stop_container ov-mq-processor &
+  qp_command $1 stop $2
 
   # Wait for Queue Processors
-  #sleep 10
+  sleep 5
 
   # Stop RabbitMQ Server(s)
   mq_command $1 stop $2 &

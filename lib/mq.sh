@@ -363,7 +363,7 @@ mq_usage() {
   echo "  stop    - Stop Container" >&2
   echo "  log     - Display Docker logs for Container" >&2
   echo "  shell   - Interactive shell for Container" >&2
-  echo "  init    - Initialize/Reset Container DB" >&2
+  echo "  init    - Initialize/Reset Container" >&2
   echo "  help    - Container usage message" >&2
   echo >&2
   echo "Parameters:"

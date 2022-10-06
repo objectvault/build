@@ -23,15 +23,6 @@ source ./lib/utility.sh
 source ./lib/git.sh
 source ./lib/docker.sh
 
-## CONTAINER: Node Queue Processor ##
-source ./lib/processor.sh
-
-## CONTAINER: BACK-END API Server ##
-source ./lib/api.sh
-
-## CONTAINER: FRONT-END Servers ##
-source ./lib/fe.sh
-
 ## Start All Application Containers (Depends on MODE)
 start_all() {
   ## START All Servers ##
@@ -257,7 +248,7 @@ mode() {
 }
 
 
-## Dsiplay Usage
+## Display Usage
 usage() {
   echo "Usage: $0 {start|stop}  [all|{container}] DEFAULT: all" >&2
   echo "       $0 build         [all|api|fe|processor] DEFAULT: all" >&2

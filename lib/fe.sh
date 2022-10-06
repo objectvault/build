@@ -13,8 +13,8 @@
 
 # Frontend Server Properties
 FE_REPO="frontend"
-FE_VERSION="v0.0.1"
 FE_IMAGE="ov-fe-server"
+FE_VERSION="v0.0.1"
 
 ## HELPERS ##
 __fe_start_server() {
@@ -150,7 +150,7 @@ fe_shell() {
   esac
 }
 
-## Build Docker Image for Frontend Server
+## Build Docker Image for Server
 fe_build() {
   # Docker Image
   local docker_image="local/${FE_IMAGE}:${FE_VERSION}"
