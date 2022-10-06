@@ -92,6 +92,33 @@ all_stop() {
   networks_rm
 }
 
+## Buil All Container Images
+all_build() {
+  # PARAM $1 - Main Executable Script
+  # PARAM $2 - MODE
+
+  echo "Building All Container Images"
+
+  # Build API Server Docker Images
+  api_command $1 build $2
+
+  # Build Frontned Server Docker Images
+  fe_command $1 build $2
+
+  # Build Node Queue Processor
+  qp_command $1 build $2
+}
+
+## Initialize All Containers
+all_init() {
+  echo "TODO: Implement"
+}
+
+## Export All Containers Data/State
+all_export() {
+  echo "TODO: Implement"
+}
+
 ## Display ALL Help
 all_usage() {
   # PARAM $1 - Main Executable Script
@@ -144,9 +171,9 @@ all_command() {
       docker container ls
       ;;
     build)
-      # Display Container Logs
+      # Build Container Images
       local mode=$(parameter_mode $3)
-      all_log $1 ${mode}
+      all_build $1 ${mode}
       ;;
     init)
       # Execute a Shell in a Container
