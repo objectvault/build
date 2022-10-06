@@ -44,6 +44,7 @@ in_list() {
   return 0
 }
 
+# Return Value, if in list, or default
 in_list_or_default() {
   ## Example usage
   # in_list_or_default "key" "${ARRAY[@]}" "default"
@@ -74,6 +75,25 @@ in_list_or_default() {
 # Extract Mode or Default to "debug"
 parameter_mode() {
   # PARAM $1 - MODE
-  local mode=$(in_list_or_default $1 "${MODES[@]}" "debug")
+  local mode=$(in_list_or_default $1 "${MODES[@]}" "${MODE}")
   echo $mode
+}
+
+# Get Mode Text
+mode() {
+  # PARAM $1 - MODE
+  case "$1" in
+    debug)
+      echo "Environment - Debug"
+      ;;
+    single)
+      echo "Environment - NON DEBUG Single Server"
+      ;;
+    cluster)
+      echo "Environment - NON DEBUG Dual Server"
+      ;;
+    *)
+      echo "Unknown Mode [$1]"
+      ;;
+  esac
 }

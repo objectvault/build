@@ -12,19 +12,19 @@
 #
 
 ## CONTAINER: MariaDB Server ##
-source ./lib/db.sh
+source ./lib/module/db.sh
 
 ## CONTAINER: RabbitMQ ##
-source ./lib/mq.sh
+source ./lib/module/mq.sh
 
 ## CONTAINER: Node Queue Processor ##
-source ./lib/qp.sh
+source ./lib/module/qp.sh
 
 ## CONTAINER: BACK-END API Server ##
-source ./lib/api.sh
+source ./lib/module/api.sh
 
 ## CONTAINER: FRONT-END Servers ##
-source ./lib/fe.sh
+source ./lib/module/fe.sh
 
 ## Start All Application Containers (Depends on MODE)
 all_start() {
