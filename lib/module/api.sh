@@ -17,6 +17,40 @@ API_IMAGE="ov-api-server"
 API_VERSION="v0.0.1"
 
 ## HELPERS ##
+
+# Initialize API Server Container
+__api_init_server() {
+  # PARAM $1 - CONTAINER
+  # PARAM $1 - MODE
+  local container=$1 # Container Name
+
+  echo "INITIALIZE Container '$container'"
+
+  ## STEP 1 : Stop Container
+  # Is Container Running?
+  status container "$container"
+  if [[ $? != 0 ]]; then # YES
+    echo "Container '$container' is being stopped"
+    stop_container "$container"
+  fi
+
+  ## STEP 2 : Initialize Configuration
+  # Does Source Configuration Directory Exist?
+  local src="${SOURCEDIR}/api"
+  echo $src
+  if [ -d "${src}" ]; then # YES
+    # Does Work Configuration Directory Exist?
+    local conf="${CONTAINERDIR}/api"
+    if [ ! -d "${conf}" ]; then # NO: Create it
+      mkdir -p "${conf}"
+    fi
+
+    # Copy Source Configuration to Container
+    cp -ar "${src}/server.${mode}.json" "$conf"
+  fi
+}
+
+## Start a API Server Container
 __api_start_server() {
   # INPUTS
   local image=$1     # Docker Image Name
@@ -141,14 +175,36 @@ api_shell() {
 
   # Options based on Mode
   case "$1" in
-    debug) # RabbitMQ: Debug Server
+    debug) # API Server: Debug Server
       docker exec -it "ov-api-debug" /bin/ash
       ;;
-    single) # RabbitMQ: Single Production Server
+    single) # API Server: Single Production Server
       docker exec -it "ov-api-s1" /bin/ash
       ;;
-    cluster) # RabbitMQ: Cluster
+    cluster) # API Server: Cluster
       echo "Can't Attach to more than one server"
+      ;;
+  esac
+}
+
+## Initialize API Server Container
+api_init() {
+  # PARAM $1 - MODE
+
+  # Action Execution State
+  echo "Working Mode [$1]"
+
+  # Options based on Mode
+  case "$1" in
+    debug) # API Server: Debug Server
+      __api_init_server "ov-api-debug" $1
+      ;;
+    single) # API Server: Single Production Server
+      __api_init_server "ov-api-s1" $1
+      ;;
+    cluster) # API Server: Cluster
+      __api_init_server "ov-api-c1" $1
+      __api_init_server "ov-api-c2" $1
       ;;
   esac
 }
@@ -168,7 +224,7 @@ api_build() {
 ## Display Message Queue Help
 api_usage() {
   # PARAM $1 - Main Executable Script
-  echo "Usage: $1 api [start|stop|log|shell|build] {debug|single|cluster}" >&2
+  echo "Usage: $1 api [start|stop|log|shell|build|init] {debug|single|cluster}" >&2
   echo "       $1 api [help] " >&2
   echo >&2
   echo "Action:"
@@ -177,6 +233,7 @@ api_usage() {
   echo "  log     - Display Docker logs for Container" >&2
   echo "  shell   - Interactive shell for Container" >&2
   echo "  build   - Build Container Image" >&2
+  echo "  init    - Initialize Container" >&2
   echo "  help    - Container usage message" >&2
   echo >&2
   echo "Possible MODES:"
@@ -229,6 +286,11 @@ api_command() {
       # Build Container Image
       local mode=$(parameter_mode $3)
       api_build ${mode}
+      ;;
+    init)
+      # Initialize Container
+      local mode=$(parameter_mode $3)
+      api_init ${mode}
       ;;
     *)
       api_usage "$1"

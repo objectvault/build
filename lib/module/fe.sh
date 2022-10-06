@@ -17,6 +17,39 @@ FE_IMAGE="ov-fe-server"
 FE_VERSION="v0.0.1"
 
 ## HELPERS ##
+# Initialize Frontend Server Container
+__fe_init_server() {
+  # PARAM $1 - CONTAINER
+  # PARAM $1 - MODE
+  local container=$1 # Container Name
+
+  echo "INITIALIZE Container '$container'"
+
+  ## STEP 1 : Stop Container
+  # Is Container Running?
+  status container "$container"
+  if [[ $? != 0 ]]; then # YES
+    echo "Container '$container' is being stopped"
+    stop_container "$container"
+  fi
+
+  ## STEP 2 : Initialize Configuration
+  # Does Source Configuration Directory Exist?
+  local src="${SOURCEDIR}/fe"
+  echo $src
+  if [ -d "${src}" ]; then # YES
+    # Does Work Configuration Directory Exist?
+    local conf="${CONTAINERDIR}/fe"
+    if [ ! -d "${conf}" ]; then # NO: Create it
+      mkdir -p "${conf}"
+    fi
+
+    # Copy Source Configuration to Container
+    cp -ar "${src}/config.${mode}.js" "$conf"
+  fi
+}
+
+## Start a Frontend Server Container
 __fe_start_server() {
   # INPUTS
   local image=$1     # Docker Image Name
@@ -162,10 +195,32 @@ fe_build() {
   build_docker_image "${FE_REPO}" "${docker_image}"
 }
 
+## Initialize Container
+fe_init() {
+  # PARAM $1 - MODE
+
+  # Action Execution State
+  echo "Working Mode [$1]"
+
+  # Options based on Mode
+  case "$1" in
+    debug) # Frontend Server: Debug Server
+      __fe_init_server "ov-fe-debug" $1
+      ;;
+    single) # Frontend Server: Single Production Server
+      __fe_init_server "ov-fe-s1" $1
+      ;;
+    cluster) # Frontend Server: Cluster
+      __fe_init_server "ov-fe-c1" $1
+      __fe_init_server "ov-fe-c2" $1
+      ;;
+  esac
+}
+
 ## Display Frontend Server Help
 fe_usage() {
   # PARAM $1 - Main Executable Script
-  echo "Usage: $1 fe [start|stop|log|shell|build] {debug|single|cluster}" >&2
+  echo "Usage: $1 fe [start|stop|log|shell|build|init] {debug|single|cluster}" >&2
   echo "       $1 fe [help] " >&2
   echo >&2
   echo "Action:"
@@ -174,6 +229,7 @@ fe_usage() {
   echo "  log     - Display Docker logs for Container" >&2
   echo "  shell   - Interactive shell for Container" >&2
   echo "  build   - Build Container Image" >&2
+  echo "  init    - Initialize Container" >&2
   echo "  help    - Container usage message" >&2
   echo >&2
   echo "Possible MODES:"
@@ -226,6 +282,11 @@ fe_command() {
       # Build Container Image
       local mode=$(parameter_mode $3)
       fe_build ${mode}
+      ;;
+    init)
+      # Initialize Container
+      local mode=$(parameter_mode $3)
+      fe_init ${mode}
       ;;
     *)
       fe_usage "$1"

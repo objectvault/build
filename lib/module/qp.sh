@@ -186,7 +186,6 @@ qp_shell() {
 ## Initialize Queue Processor Container
 qp_init() {
   # PARAM $1 - MODE
-  local image="${QP_IMAGE}"
 
   # Action Execution State
   echo "Working Mode [$1]"
