@@ -160,8 +160,9 @@ all_usage() {
   echo >&2
   echo "Examples:" >&2
   echo >&2
-  echo "$1 all start       --- Start all Containers in [DEBUG] mode" >&2
-  echo "$1 all stop single --- Stop all Containers in [SINGLE] mode" >&2
+  echo "$1 all build       --- Build all Containers Images in   [DEBUG] mode" >&2
+  echo "$1 all init single --- Initialize all Containers in     [SINGLE] mode" >&2
+  echo "$1 all start       --- Start all Containers in          [DEBUG] mode" >&2
   echo "$1 all export      --- Export all Configuration/Data in [DEBUG] mode" >&2
   exit 3
 }
