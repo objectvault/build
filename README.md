@@ -163,7 +163,7 @@ To run the application, in **DEBUG** mode you basically have to just do the foll
 ./run.sh all start
 ```
 
-4. Use a web browser to [Open](http://127.0.0.1:3000)
+4. Use a web browser to [Open Application UI](http://127.0.0.1:5000)
 
 5. Stop the Application
 
