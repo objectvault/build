@@ -378,25 +378,36 @@ db_init() {
   # STEP 1: Make sure Container Stopped
   db_stop "$1"
 
-  # STEP 2: Make sure Container Directory Exists and is Populated
-  # Options based on Mode
+  echo "Waiting for Container to STOP"
+  sleep 10
+
+  # STEP 3: Make Sure (Based on Mode)
+  ## 1. Container Volume Removed (will be recreated on start)
+  ## 2. Container Director Exists and is Populated
   case "$1" in
     debug) # Debug DB Server
+      volume_rm            "ov-db-debug"
       __db_init_container  "$1" "ov-db-debug"
       ;;
     single) # NOT Debug: Single Shard Server
+      volume_rm            "ov-db-s1"
       __db_init_container  "$1" "ov-db-s1"
       ;;
     cluster) # NOT Debug: Dual Shard Server
       # Initialize SHARD 1
+      volume_rm            "ov-db-d1"
       __db_init_container  "$1" "ov-db-d1"
       # Initialize SHARD 2
+      volume_rm            "ov-db-d2"
       __db_init_container  "$1" "ov-db-d2"
       ;;
   esac
 
-  # STEP 3: Restart the DB Server
+  # STEP 4: Restart the DB Server
   db_start "$1"
+
+  echo "Waiting for Container to be READY"
+  sleep 10
 
   # STEP 4: Create and Initialize Database
   # Options based on Mode
