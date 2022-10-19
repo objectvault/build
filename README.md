@@ -176,6 +176,7 @@ To run the application, in **DEBUG** mode you basically have to just do the foll
 ```shell
 ./run.sh all export
 ```
+
 ## Notes for 1st Application Use
 
 ### The application has several main ***objects***
@@ -188,7 +189,7 @@ To run the application, in **DEBUG** mode you basically have to just do the foll
 By default, the system is initialized with:
 
 1. System Organization: system
-   - System Administration Organization *ONLY** (***can not*** have Object Stores associated)
+   - System Administration Organization **ONLY** (***can not*** have Object Stores associated)
    - All users that can create Organization's have to be associated with ***system*** organization
 2. System Admin: admin, password: adminADMIN
    - Has ***ALL*** Roles and Permissions over the ***system*** organization

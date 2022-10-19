@@ -35,11 +35,11 @@ all_start() {
   echo "START: Starting Servers"
 
   #1 Start Database and Queue Servers ##
-  db_command $1 start $2 &
-  mq_command $1 start $2 &
+  db_command $1 start $2
+  mq_command $1 start $2
 
-  # Delay 10 Seconds to Allow for Server Initialization
-  sleep 10
+  # Delay 5 Seconds to Allow for Server Initialization
+  sleep 5
 
   # Start Queue Processors
   qp_command $1 start $2
