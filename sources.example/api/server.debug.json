@@ -49,7 +49,7 @@
         "user": "**API-QUEUE-USER**",
         "password": "**PASSWORD**",
         "server": {
-          "host": "ov-db-debug",
+          "host": "ov-mq-debug",
           "port": 5672
         },
         "vhost": "objectvault"
