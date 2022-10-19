@@ -137,7 +137,7 @@ By function:
 ### Initialize Execution Environment
 
 1. Duplicate the directory ***sources.example*** to ***source***
-2. Modify Existing configuration files, to fill in missing information/passwords, etc.
+2. Modify Existing configuration files and **settings.sh**, to fill in missing information/passwords, etc.
 
 ## Execution STEP-BY-STEP
 
