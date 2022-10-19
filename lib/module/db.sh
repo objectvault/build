@@ -40,7 +40,7 @@ __db_start_server() {
     local envfile="${CONTAINERDIR}/mariadb/.env.${mode}"
 
     # Create Container Volume
-    volume_create "${CONTAINER}"
+    volume_create "${container}"
 
     ## Initialize Docker Command
     DOCKERCMD="docker run --rm --name ${container}"
@@ -209,6 +209,34 @@ __db_init_database() {
   cat ${startup} | $DOCKERCMD
 }
 
+__db_init_container() {
+  # INPUTS
+  local mode=$1      # mode
+  local container=$2 # Container Name
+
+  local src="${SOURCEDIR}/mariadb"
+  local confdir="${CONTAINERDIR}/mariadb"
+
+  # Does Configuration Directory Exist
+  if [ ! -d "${confdir}" ]; then # No: Create it
+    mkdir -p "${confdir}"
+  fi
+
+  # Configuration Files
+  local conf="${container}.conf"
+  local envfile=".env.${mode}"
+
+  # Configuration file exists?
+  if [ -f "${src}/${conf}" ]; then # Yes: Copy it over
+    cp -a "${src}/${conf}" "${confdir}/${conf}"
+  fi
+
+  # Environment file exists?
+  if [ -f "${src}/${envfile}" ]; then # Yes: Copy it over
+    cp -a "${src}/${envfile}" "${confdir}/${envfile}"
+  fi
+}
+
 __db_parameter_db() {
   # PARAM $1 - Database
   local db=${1:-"vault"}
@@ -347,6 +375,30 @@ db_init() {
   echo "Working Mode    [$1]"
   echo "Initializing DB [$2]"
 
+  # STEP 1: Make sure Container Stopped
+  db_stop "$1"
+
+  # STEP 2: Make sure Container Directory Exists and is Populated
+  # Options based on Mode
+  case "$1" in
+    debug) # Debug DB Server
+      __db_init_container  "$1" "ov-db-debug"
+      ;;
+    single) # NOT Debug: Single Shard Server
+      __db_init_container  "$1" "ov-db-s1"
+      ;;
+    cluster) # NOT Debug: Dual Shard Server
+      # Initialize SHARD 1
+      __db_init_container  "$1" "ov-db-d1"
+      # Initialize SHARD 2
+      __db_init_container  "$1" "ov-db-d2"
+      ;;
+  esac
+
+  # STEP 3: Restart the DB Server
+  db_start "$1"
+
+  # STEP 4: Create and Initialize Database
   # Options based on Mode
   case "$1" in
     debug) # Debug DB Server
@@ -361,9 +413,9 @@ db_init() {
       ;;
     cluster) # NOT Debug: Dual Shard Server
       # Initialize SHARD 1
-      __db_drop_database    "ov-db-d1""$2"
-      __db_create_database  "ov-db-d1""$2"
-      __db_init_database    "ov-db-d1""$2"
+      __db_drop_database    "ov-db-d1" "$2"
+      __db_create_database  "ov-db-d1" "$2"
+      __db_init_database    "ov-db-d1" "$2"
       # Initialize SHARD 2
       __db_drop_database    "ov-db-d2" "$2"
       __db_create_database  "ov-db-d2" "$2"
@@ -380,6 +432,9 @@ db_export() {
   # Action Execution State
   echo "Working Mode [$1]"
   echo "Dump DB      [$2]"
+
+  # Make sure Database Server Started
+  db_start "$1"
 
   # Options based on Mode
   case "$1" in
@@ -406,6 +461,9 @@ db_restore() {
   echo "Working Mode  [$1]"
   echo "Restore to DB [$2]"
   echo "Restore Dump  [$3]"
+
+  # Make sure Database Server Started
+  db_start "$1"
 
   # Options based on Mode
   case "$1" in
