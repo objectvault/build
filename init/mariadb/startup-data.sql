@@ -1,3 +1,7 @@
+-- DISABLE AUTO_INCREMENT for '0'
+-- IMPORTANT: Required for 0 USER and 0 ORGANIZATION
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+
 -- CREATE 0 USER (Initial System Administrator)
 -- DEFAULT PASSWORD adminADMIN
 INSERT INTO `users` (`id`, `name`, `username`, `email`, `ciphertext`, `creator`)
@@ -7,6 +11,9 @@ INSERT INTO `users` (`id`, `name`, `username`, `email`, `ciphertext`, `creator`)
 INSERT INTO `orgs` (`id`, `orgname`, `name`, `creator`)
        VALUES      (0, 'system', 'System Organization', 0);
 -- TODO: SET 0 Organization Object Including Default Password Policy
+
+-- RESET SQL_MODE
+SET SQL_MODE="STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION";
 
 -- GLOBAL User Registry : Register 0 User
 INSERT INTO `registry_users` (`id_user`, `name`, `username`, `email`, `state`, `ciphertext`)
