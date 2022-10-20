@@ -19,8 +19,8 @@ GITHUB_OV_URL="https://github.com/objectvault"
 ## DOCKER Settings
 
 # IMAGES
-RABBITMQ="rabbitmq:management-alpine"
-MARIADB="bitnami/mariadb:latest"
+RABBITMQ="rabbitmq:3.11-management-alpine"
+MARIADB="bitnami/mariadb:10.9"
 
 # BUILD Directory
 BUILDDIR="${BASEDIR}/builds"
