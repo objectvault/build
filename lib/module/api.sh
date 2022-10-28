@@ -14,7 +14,7 @@
 # API Server Properties
 API_REPO="api-services"
 API_IMAGE="ov-api-server"
-API_VERSION="v0.0.1"
+API_VERSION="v0.0.2"
 
 ## HELPERS ##
 
