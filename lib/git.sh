@@ -31,12 +31,19 @@ github_clone_release() {
     rm -rf "${output}"
   fi
 
+  ## Initialize GIT Command
+  local GITCMD="git clone -q --depth 1"
+
   # Clone a Release or Latest?
   if [[ $# == 1 ]]; then # CLONE: Latest
-    git clone -q --depth 1 ${url} ${output}
+    GITCMD="${GITCMD} ${url} ${output}"
   else # CLONE: Release
-    git clone -q --depth 1 --branch $2 ${url} ${output}
+    GITCMD="${GITCMD} --branch $2 ${url} ${output}"
   fi
+
+  # Execute the Command
+  echo $GITCMD
+  $GITCMD
 
   # Cloned Repository?
   if [[ $? == 0 ]]; then # YES: Remove .git
