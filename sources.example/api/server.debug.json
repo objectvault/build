@@ -5,7 +5,7 @@
       "cookie": {
         "id": "__sid",
         "encryption": null,
-        "hash": "**HASH-KEY**",
+        "secret": "**HASH-KEY**",
         "options": {
           "maxage": 7200
         }
