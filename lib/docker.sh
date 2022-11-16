@@ -69,7 +69,7 @@ network_create() {
   status network "${NETWORK}"
   if [[ $? == 0 ]]; then # NO
 
-    if [ "${NETWORK}" -eq ${NET_BACKEND} ]; then
+    if [ "${NETWORK}" -eq "${NET_BACKEND}" ]; then
       # Internal Only Networks
       ARGS="--internal ${NETWORK}"
     else # Normal Network
