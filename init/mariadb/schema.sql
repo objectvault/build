@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS `registry_org_stores` (
     `id_org` BIGINT UNSIGNED NOT NULL COMMENT 'ORG SHARD ID',
     `id_store` BIGINT UNSIGNED NOT NULL COMMENT 'STORE SHARD ID',
     `storename` VARCHAR(40) NOT NULL COMMENT 'STORE Alias',
-    `state` SMALLINT UNSIGNED NULL DEFAULT 0 COMMENT 'Store State',
+    `state` SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Store State',
     PRIMARY KEY (`id_org`, `id_store`),
     UNIQUE INDEX `UI_idorg_storename` (`id_org` ASC, `storename` ASC) VISIBLE
 );
@@ -98,8 +98,10 @@ CREATE TABLE IF NOT EXISTS `registry_object_users` (
     `id_object` BIGINT UNSIGNED NOT NULL COMMENT 'OBJECT SHARD ID',
     `id_user` BIGINT UNSIGNED NOT NULL COMMENT 'USER SHARD ID',
     `username` VARCHAR(40) NOT NULL COMMENT 'USER Alias',
-    `state` SMALLINT UNSIGNED NULL DEFAULT 0 COMMENT 'USER State in Container',
+    `state` SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'USER State in Container',
     `roles` VARCHAR(1023) NULL DEFAULT NULL COMMENT 'CSV List of User Roles in Container',
+    `mgr_roles` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Mark User as Role Manager',
+    `mgr_invites` TINYINT(1) UNSIGNED NOTR NULL DEFAULT 0 COMMENT 'Mark User as Role Manager',
     `ciphertext` VARBINARY(255) NULL COMMENT 'Encrypted Store Object Decrypt Key',
     PRIMARY KEY (`id_object`, `id_user`),
     UNIQUE INDEX `UI_object_username` (`id_object` ASC, `username` ASC) VISIBLE
@@ -111,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `registry_user_objects` (
     `type` SMALLINT UNSIGNED NOT NULL COMMENT 'OBJECT Type',
     `id_object` BIGINT UNSIGNED NOT NULL COMMENT 'OBJECT SHARD Distributed ID',
     `alias` VARCHAR(40) NOT NULL COMMENT 'Container Alias',
-    `favorite` TINYINT UNSIGNED NULL DEFAULT 0 COMMENT 'Marked as Favorite Object',
+    `favorite` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Marked as Favorite Object',
     PRIMARY KEY (`id_user`, `type`, `id_object`),
     INDEX `I_user_alias` (`id_user` ASC, `type` ASC, `alias` ASC) VISIBLE
 );
@@ -120,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `registry_user_objects` (
 -- STORE Objects live on SAME SHARD as Parent STORE
 CREATE TABLE IF NOT EXISTS `objects` (
     `id_store` INT UNSIGNED NOT NULL COMMENT 'LOCAL STORE ID',
-    `id_parent` INT UNSIGNED DEFAULT 0 COMMENT 'Parent Entry ID',
+    `id_parent` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Parent Entry ID',
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'UNIQUE ENTRY ID',
     `title` NVARCHAR(40) NOT NULL COMMENT 'Short Description (UNICODE)',
     `type` SMALLINT UNSIGNED NOT NULL COMMENT 'Entry Type',
