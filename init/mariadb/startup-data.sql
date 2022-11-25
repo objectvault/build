@@ -5,7 +5,7 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- CREATE 0 USER (Initial System Administrator)
 -- DEFAULT PASSWORD adminADMIN
 INSERT INTO `users` (`id`, `name`, `username`, `email`, `ciphertext`, `creator`)
-       VALUES       (0, 'System Administrator', 'admin', 'admin@objectvault', UNHEX('a571513abb69a0de867f8163f042ee5f4aacc580dde8906ffd494800e1e87fc053dc10cb55a223e152c6fef8b36ca10c18eb43b75686863277ee5516'), 0);
+       VALUES       (0, 'System Administrator', 'admin', 'admin@object.vault', UNHEX('a571513abb69a0de867f8163f042ee5f4aacc580dde8906ffd494800e1e87fc053dc10cb55a223e152c6fef8b36ca10c18eb43b75686863277ee5516'), 0);
 
 -- CREATE 0 ORGANIZATION (System Management Organization)
 INSERT INTO `orgs` (`id`, `orgname`, `name`, `creator`)
