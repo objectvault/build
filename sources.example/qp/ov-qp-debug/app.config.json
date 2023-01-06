@@ -21,47 +21,56 @@
           "password": "**PASSWORD**"
         },
         "queues": {
-          "action:start": {
+          "action:in": {
+            "check": true
+          },
+          "action:pending": {
+            "check": true
+          },
+          "action:processing": {
             "check": true
           },
           "email:in": {
             "check": true
           },
-          "email:send": {
+          "email:pending": {
             "check": true
           },
-          "message:ok": {
+          "notify": {
             "check": true
           }
+        },
+        "publications": {
+          "action-pending": {
+            "queue": "action:pending"
+          },
+          "action-processing": {
+            "queue": "action:processing"
+          },
+          "email-in": {
+            "queue": "email:in"
+          },
+          "email-pending": {
+            "queue": "email:pending"
+          },
+          "notify": {
+            "queue": "notify"
+          }
+        },
+        "subscriptions": {
+          "action-in": {
+            "queue": "action:in"
+          },
+          "action-pending": {
+            "queue": "action:pending"
+          },
+          "email-in": {
+            "queue": "email:in"
+          },
+          "email-pending": {
+            "queue": "email:pending"
+          }
         }
-      }
-    },
-    "publications": {
-      "email-in": {
-        "vhost": "objectvault",
-        "queue": "email:in"
-      },
-      "email-send": {
-        "vhost": "objectvault",
-        "queue": "email:send"
-      },
-      "message-ok": {
-        "vhost": "objectvault",
-        "queue": "message:ok"
-      }
-    },
-    "subscriptions": {
-      "action-start": {
-        "vhost": "objectvault",
-        "queue": "action:start"
-      },
-      "email-in": {
-        "vhost": "objectvault",
-        "queue": "email:in"
-      },
-      "email-send": {
-        "vhost": "objectvault",
-        "queue": "email:send"
       }
     }
   }
