@@ -17,6 +17,9 @@ source ./lib/module/db.sh
 ## CONTAINER: RabbitMQ ##
 source ./lib/module/mq.sh
 
+## CONTAINER: RabbitMQ ##
+source ./lib/module/redis.sh
+
 ## CONTAINER: Node Queue Processor ##
 source ./lib/module/qp.sh
 
@@ -34,9 +37,10 @@ all_start() {
   ## START All Servers ##
   echo "START: Starting Servers"
 
-  #1 Start Database and Queue Servers ##
+  #1 Start Database, Queue Server and Redis ##
   db_command $1 start $2
   mq_command $1 start $2
+  redis_command $1 start $2
 
   # Delay 5 Seconds to Allow for Server Initialization
   sleep 5
@@ -79,8 +83,9 @@ all_stop() {
   # Wait for Queue Processors
   sleep 5
 
-  # Stop RabbitMQ Server(s)
+  # Stop RabbitMQ Server(s) and Redis Server(s)
   mq_command $1 stop $2 &
+  redis_command $1 stop $2 &
 
   # Stop Database Server(s)
   db_command $1 stop $2 &
@@ -116,6 +121,9 @@ all_init() {
 
   # Initialize/Reset RabbitMQ Server(s)
   mq_command $1 init $2
+
+  # Initialize/Reset Redis Server(s)
+  redis_command $1 init $2
 
   # Initialize/Reset API Server Container(s)
   api_command $1 init $2

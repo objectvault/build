@@ -29,7 +29,7 @@ usage() {
   echo "       $0 help" >&2
   echo >&2
   echo "Containers:"
-  echo "  db | mq | api | fe | qp" >&2
+  echo "  db | mq | api | fe | qp | redis" >&2
   echo >&2
   echo "MODES:" >&2
   echo "  debug   - Local Debugging" >&2
