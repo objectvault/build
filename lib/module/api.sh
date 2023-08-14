@@ -195,8 +195,10 @@ api_init() {
   echo "Working Mode [$1]"
 
   # Options based on Mode
-  case "$1" in__debug_bin
-
+  case "$1" in
+    debug) # API Server: Debug Server
+      __api_init_server "ov-api-debug" $1
+      ;;
     single) # API Server: Single Production Server
       __api_init_server "ov-api-s1" $1
       ;;
