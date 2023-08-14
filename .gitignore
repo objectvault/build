@@ -13,3 +13,9 @@ tmp
 builds
 containers
 sources
+
+# VSCode
+##########
+.vscode
+.history
+*.code-workspace
