@@ -14,7 +14,7 @@
 # API Server Properties
 API_REPO="api-services"
 API_IMAGE="ov-api-server"
-API_VERSION="v0.0.10"
+API_VERSION="v0.0.11"
 
 ## HELPERS ##
 
@@ -195,10 +195,8 @@ api_init() {
   echo "Working Mode [$1]"
 
   # Options based on Mode
-  case "$1" in
-    debug) # API Server: Debug Server
-      __api_init_server "ov-api-debug" $1
-      ;;
+  case "$1" in__debug_bin
+
     single) # API Server: Single Production Server
       __api_init_server "ov-api-s1" $1
       ;;
