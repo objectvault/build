@@ -12,7 +12,14 @@
       "pass": "**PASSWORD**"
     }
   },
-  "broker": {
+  "redis": {
+    "socket": {
+      "host": "ov-redis-debug",
+      "port": 6379
+    },
+    "password": "**PASSWORD**"
+  },
+  "rascal": {
     "vhosts": {
       "objectvault": {
         "connection": {
@@ -20,55 +27,92 @@
           "user": "**PROCESSOR USER**",
           "password": "**PASSWORD**"
         },
+        "exchanges": {
+          "e.actions": {
+            "type": "direct",
+            "check": true
+          },
+          "e.emails": {
+            "type": "direct",
+            "check": true
+          }
+        },
         "queues": {
-          "action:in": {
-            "check": true
+          "q.ok": {
+            "check": true,
+            "assert": false
           },
-          "action:pending": {
-            "check": true
+          "q.nok": {
+            "check": true,
+            "assert": false
           },
-          "action:processing": {
-            "check": true
+          "q.actions.inbox": {
+            "check": true,
+            "assert": false
           },
-          "email:in": {
-            "check": true
+          "q.actions.process": {
+            "check": true,
+            "assert": false
           },
-          "email:pending": {
-            "check": true
+          "q.actions.pending": {
+            "check": true,
+            "assert": false
           },
-          "notify": {
-            "check": true
+          "q.emails.inbox": {
+            "check": true,
+            "assert": false
+          },
+          "q.emails.process": {
+            "check": true,
+            "assert": false
+          },
+          "q.emails.sleep": {
+            "check": true,
+            "assert": false
           }
         },
         "publications": {
-          "action-pending": {
-            "queue": "action:pending"
+          "ok": {
+            "queue": "q.ok"
           },
-          "action-processing": {
-            "queue": "action:processing"
+          "nok": {
+            "queue": "q.nok"
           },
-          "email-in": {
-            "queue": "email:in"
+          "action-process": {
+            "exchange": "e.actions",
+            "routingKey": "process"
           },
-          "email-pending": {
-            "queue": "email:pending"
+          "action-sleep": {
+            "exchange": "e.actions",
+            "routingKey": "sleep"
           },
-          "notify": {
-            "queue": "notify"
+          "email-inbox": {
+            "exchange": "e.emails"
+          },
+          "email-process": {
+            "exchange": "e.emails",
+            "routingKey": "process"
+          },
+          "email-sleep": {
+            "exchange": "e.emails",
+            "routingKey": "sleep"
           }
         },
         "subscriptions": {
-          "action-in": {
-            "queue": "action:in"
+          "action-inbox": {
+            "queue": "q.actions.inbox"
+          },
+          "action-process": {
+            "queue": "q.actions.process"
           },
           "action-pending": {
-            "queue": "action:pending"
+            "queue": "q.actions.pending"
           },
-          "email-in": {
-            "queue": "email:in"
+          "email-inbox": {
+            "queue": "q.emails.inbox"
           },
-          "email-pending": {
-            "queue": "email:pending"
+          "email-process": {
+            "queue": "q.emails.process"
           }
         }
       }
