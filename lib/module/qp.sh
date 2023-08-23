@@ -14,7 +14,7 @@
 # Frontend Server Properties
 QP_REPO="queue-node-processor"
 QP_IMAGE="ov-queue-processor"
-QP_VERSION="v0.0.5"
+QP_VERSION="v0.0.6"
 
 ## HELPERS ##
 # Initialize RabbitMQ Container

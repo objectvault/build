@@ -1,15 +1,15 @@
 Hi,
 
-You have been invited by [{{props.by-name}}] to join ObjectVault Organization [{{props.objectname}}].
+You have been invited by [{{by-name}}] to join ObjectVault Organization [{{objectname}}].
 
 To accept, or decline, the invitation the registration, copy and paste the URL below into your web browser.
-This request is only valid until [{{props.expiration}}] UTC, after which, it will be automatically deleted.
+This request is only valid until [{{expiration}}] UTC, after which, it will be automatically deleted.
 
-To accept, or decline, the invitation follow this link [{{url}}/{{props.code}}].
-{% if props.message %}
+To accept, or decline, the invitation follow this link [{{url}}/{{code}}].
+{% if message %}
 The invitee sent the following message along with this request:
 ---
-{{props.message}}
+{{message}}
 ---
 {% endif %}
 Thanks,
