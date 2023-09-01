@@ -14,7 +14,7 @@
 # Frontend Server Properties
 FE_REPO="frontend"
 FE_IMAGE="ov-fe-server"
-FE_VERSION="v0.0.9"
+FE_VERSION="v0.0.11"
 
 ## HELPERS ##
 # Initialize Frontend Server Container
